@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "dauthz-core",
+    "dauthz-client",
+    "dauthz-server",
+    "dauthz-bin",
+]
+resolver = "2"
