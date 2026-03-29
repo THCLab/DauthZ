@@ -1,0 +1,282 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    background: #0d1117;
+    color: #e6edf3;
+}
+
+h1 { margin-bottom: 0.25rem; }
+h2 { margin-bottom: 1rem; color: #58a6ff; }
+h3 { margin-bottom: 0.5rem; color: #8b949e; font-size: 1rem; }
+
+.subtitle {
+    color: #8b949e;
+    margin-bottom: 1.5rem;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #21262d;
+    margin-bottom: 1.5rem;
+}
+
+.tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 1rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+}
+
+.tab.active {
+    color: #58a6ff;
+    border-bottom-color: #58a6ff;
+}
+
+.tab:hover { color: #e6edf3; }
+
+/* Panels */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Steps */
+.step {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.step.hidden { display: none; }
+
+.step p { margin: 0.5rem 0; color: #8b949e; font-size: 0.9rem; }
+.step code { background: #21262d; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.85rem; }
+
+/* CLI snippets */
+.cli-snippet {
+    background: #010409;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    color: #7ee787;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    cursor: pointer;
+    position: relative;
+    margin: 0.5rem 0;
+}
+
+.cli-snippet:hover { border-color: #58a6ff; }
+.cli-snippet.copied { border-color: #7ee787; background: #0d1f0d; }
+.cli-snippet.copied::after {
+    content: 'Copied!';
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+    color: #7ee787;
+    font-size: 0.8rem;
+}
+
+/* Text areas */
+textarea {
+    width: 100%;
+    min-height: 80px;
+    background: #010409;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #e6edf3;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+    margin: 0.5rem 0;
+}
+
+textarea:focus { border-color: #58a6ff; outline: none; }
+
+/* Buttons */
+button {
+    background: #238636;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+button:hover { background: #2ea043; }
+button:disabled { background: #21262d; color: #484f58; cursor: default; }
+button.danger { background: #da3633; }
+button.danger:hover { background: #f85149; }
+
+/* Info / output boxes */
+.info-box, .output-box, .result-box {
+    background: #010409;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0.5rem 0;
+    color: #c9d1d9;
+}
+
+.output-box { color: #7ee787; }
+.result-box.error { color: #f85149; border-color: #f85149; }
+.result-box:not(.error) { color: #58a6ff; }
+
+/* Formatted payload preview (cross-tab transfers) */
+.payload {
+    background: #010409;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0.5rem 0;
+    color: #7ee787;
+}
+
+.auto-fill-msg {
+    color: #7ee787;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.transfer-btn {
+    background: #1f6feb !important;
+}
+.transfer-btn:hover { background: #388bfd !important; }
+
+/* Payload previews (auto-filled from cross-tab transfer) */
+.payload {
+    background: #010409;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0.5rem 0;
+    color: #7ee787;
+}
+
+.auto-fill-msg {
+    color: #7ee787;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.transfer-btn {
+    background: #1f6feb;
+    margin-top: 0.75rem;
+}
+.transfer-btn:hover { background: #388bfd; }
+
+.hint {
+    color: #8b949e;
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.hidden { display: none !important; }
+
+/* Log panel */
+#log-panel {
+    margin-top: 2rem;
+    border-top: 1px solid #21262d;
+    padding-top: 1rem;
+}
+
+#log-panel h3 { margin-bottom: 0.5rem; }
+
+.log-entry {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: #484f58;
+    padding: 0.2rem 0;
+}
+
+/* Session cards */
+.session-card {
+    background: #010409;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0;
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.session-aid {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    color: #58a6ff;
+}
+
+.session-status {
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+}
+
+.session-valid {
+    background: #0d1f0d;
+    color: #7ee787;
+    border: 1px solid #238636;
+}
+
+.session-invalidated {
+    background: #2d0a0a;
+    color: #f85149;
+    border: 1px solid #da3633;
+}
+
+.session-details {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: #8b949e;
+    margin-bottom: 0.5rem;
+}
+
+.session-details div {
+    margin: 0.15rem 0;
+}
+
+.session-details code {
+    background: #21262d;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+}
+
+/* Make info-box support error state */
+.info-box.error {
+    color: #f85149;
+    border-color: #da3633;
+}

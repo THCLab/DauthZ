@@ -4,5 +4,6 @@ members = [
     "dauthz-client",
     "dauthz-server",
     "dauthz-bin",
+    "dauthz-wasm",
 ]
 resolver = "2"

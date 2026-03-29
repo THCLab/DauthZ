@@ -32,6 +32,7 @@ pub enum DauthzError {
     #[error("identifier not found: {0}")]
     IdentifierNotFound(String),
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 

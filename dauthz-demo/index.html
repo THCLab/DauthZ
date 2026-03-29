@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAuthZ Ceremony Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>DAuthZ — Ceremony Demo</h1>
+    <p class="subtitle">Walk through registration and login ceremonies. All dkms CLI actions are done manually — paste output to continue.</p>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="service">Service</button>
+        <button class="tab" data-tab="entity">Entity</button>
+    </div>
+
+    <!-- SERVICE PANEL -->
+    <div id="panel-service" class="panel active">
+        <h2>Service Operator</h2>
+
+        <!-- Setup -->
+        <section class="step" id="svc-step-1">
+            <h3>Step 1 — Create Service Identifier</h3>
+            <p>Run the following command to initialize a service AID:</p>
+            <div class="cli-snippet" data-copy>dkms identifier init -a demo-service --witness-url http://172.17.0.1:3232 --witness-url http://172.17.0.1:3233 --watcher-url http://172.17.0.1:3235</div>
+            <p>Then get the AID:</p>
+            <div class="cli-snippet" data-copy>dkms identifier info demo-service</div>
+            <p>Paste the <code>aid</code> value from the JSON output:</p>
+            <textarea id="svc-aid-input" rows="2" placeholder='e.g. EIoLw0W6...'></textarea>
+            <button onclick="saveServiceAid()">Save Service AID</button>
+        </section>
+
+        <section class="step hidden" id="svc-step-2">
+            <h3>Step 2 — Get Service OOBI</h3>
+            <div class="cli-snippet" data-copy>dkms identifier oobi get -a demo-service</div>
+            <p>Paste the full JSON array output:</p>
+            <textarea id="svc-oobi-input" rows="4" placeholder='[{"eid":"...","scheme":"http","url":"http://172.17.0.1:3232/"}]'></textarea>
+            <button onclick="saveServiceOobi()">Save Service OOBI</button>
+        </section>
+
+        <section class="step hidden" id="svc-step-3">
+            <h3>Step 3 — Initialize Service</h3>
+            <div class="info-box" id="svc-info"></div>
+            <button onclick="initServiceSdk()">Initialize Service SDK</button>
+        </section>
+
+        <section class="step hidden" id="svc-step-4">
+            <h3>Step 4 — Resolve Entity OOBI</h3>
+            <p>Before issuing challenges, resolve the Entity's OOBI. Get it from the Entity tab (Step 2) and paste the OOBI JSON array below:</p>
+            <textarea id="entity-oobi-input" rows="4" placeholder='[{"eid":"...","scheme":"http","url":"..."}]'></textarea>
+            <div class="cli-snippet hidden" data-copy id="resolve-entity-cmd"></div>
+            <button onclick="resolveEntityOobi()">Resolve Entity OOBI</button>
+        </section>
+
+        <!-- Registration ceremony -->
+        <section class="step hidden" id="svc-step-5">
+            <h3>Step 5 — Issue Registration Challenge</h3>
+            <button onclick="issueChallenge('registration')">Create Registration Challenge</button>
+            <div class="output-box hidden" id="reg-challenge-output"></div>
+            <div class="transfer-action hidden" id="reg-challenge-transfer">
+                <button class="transfer-btn" onclick="sendChallengeToEntity()">Send to Entity tab &#10140;</button>
+            </div>
+        </section>
+
+        <section class="step hidden" id="svc-step-6">
+            <h3>Step 6 — Paste Entity Response</h3>
+            <p>Switch to the Entity tab to get the response, then paste it here:</p>
+            <textarea id="entity-response-input" rows="6" placeholder='{"entity_aid":"...","entity_oobi":"...","nonce":"...","signed_challenge":"..."}'></textarea>
+            <button onclick="prepareVerifySignature('registration')">Load Response</button>
+            <div class="hidden" id="reg-verify-sig-area">
+                <p>Verify the entity's signature. Run:</p>
+                <div class="cli-snippet" data-copy id="reg-verify-cmd"></div>
+                <p>Did <code>dkms data verify</code> confirm the signature is valid?</p>
+                <button onclick="verifyRegistration(true)">Signature Valid — Register</button>
+                <button class="danger" onclick="verifyRegistration(false)">Signature Invalid — Reject</button>
+            </div>
+            <div class="result-box hidden" id="reg-result"></div>
+        </section>
+
+        <!-- Login ceremony -->
+        <section class="step hidden" id="svc-step-7">
+            <h3>Step 7 — Issue Login Challenge</h3>
+            <button onclick="issueChallenge('identification')">Create Login Challenge</button>
+            <div class="output-box hidden" id="login-challenge-output"></div>
+            <div class="transfer-action hidden" id="login-challenge-transfer">
+                <button class="transfer-btn" onclick="sendChallengeToEntity()">Send to Entity tab &#10140;</button>
+            </div>
+        </section>
+
+        <section class="step hidden" id="svc-step-8">
+            <h3>Step 8 — Paste Login Response</h3>
+            <textarea id="login-response-input" rows="6" placeholder='{"entity_aid":"...","entity_oobi":"...","nonce":"...","signed_challenge":"..."}'></textarea>
+            <button onclick="prepareVerifySignature('identification')">Load Response</button>
+            <div class="info-box hidden" id="login-nonce-check"></div>
+            <div class="hidden" id="login-verify-sig-area">
+                <p>Verify the entity's signature. Run:</p>
+                <div class="cli-snippet" data-copy id="login-verify-cmd"></div>
+                <p>Did <code>dkms data verify</code> confirm the signature is valid?</p>
+                <button onclick="verifyLogin(true)">Signature Valid — Authenticate</button>
+                <button class="danger" onclick="verifyLogin(false)">Signature Invalid — Reject</button>
+            </div>
+            <div class="result-box hidden" id="login-result"></div>
+        </section>
+
+        <section class="step hidden" id="svc-step-sessions">
+            <h3>Active Sessions</h3>
+            <button onclick="listSessions()">Refresh</button>
+            <div id="sessions-list"></div>
+        </section>
+
+        <section class="step hidden" id="svc-step-accounts">
+            <h3>Registered Accounts</h3>
+            <button onclick="listAccounts()">Refresh</button>
+            <pre id="accounts-list"></pre>
+        </section>
+    </div>
+
+    <!-- ENTITY PANEL -->
+    <div id="panel-entity" class="panel">
+        <h2>Entity / User</h2>
+
+        <!-- Setup -->
+        <section class="step" id="ent-step-1">
+            <h3>Step 1 — Create Entity Identifier</h3>
+            <div class="cli-snippet" data-copy>dkms identifier init -a demo-entity --witness-url http://172.17.0.1:3232 --witness-url http://172.17.0.1:3233 --watcher-url http://172.17.0.1:3235</div>
+            <div class="cli-snippet" data-copy>dkms identifier info demo-entity</div>
+            <p>Paste the <code>aid</code> value:</p>
+            <textarea id="ent-aid-input" rows="2" placeholder='e.g. EXmpl0A1d...'></textarea>
+            <button onclick="saveEntityAid()">Save Entity AID</button>
+        </section>
+
+        <section class="step hidden" id="ent-step-2">
+            <h3>Step 2 — Get Entity OOBI</h3>
+            <div class="cli-snippet" data-copy>dkms identifier oobi get -a demo-entity</div>
+            <p>Paste the full JSON array output:</p>
+            <textarea id="ent-oobi-input" rows="4" placeholder='[{"eid":"...","scheme":"http","url":"..."}]'></textarea>
+            <button onclick="saveEntityOobi()">Save Entity OOBI</button>
+        </section>
+
+        <section class="step hidden" id="ent-step-3">
+            <h3>Step 3 — Resolve Service OOBI</h3>
+            <p>Before receiving challenges, resolve the Service's OOBI. Get it from the Service tab (Step 2) and paste below:</p>
+            <textarea id="svc-oobi-resolve-input" rows="4" placeholder='[{"eid":"...","scheme":"http","url":"http://172.17.0.1:3232/"}]'></textarea>
+            <div class="cli-snippet hidden" data-copy id="resolve-svc-cmd"></div>
+            <button onclick="resolveServiceOobiSetup()">Resolve Service OOBI</button>
+        </section>
+
+        <!-- Challenge ceremony (reused for both registration and login) -->
+        <section class="step hidden" id="ent-step-4">
+            <h3 id="ent-challenge-title">Step 4 — Receive Challenge</h3>
+            <div id="challenge-auto-area" class="hidden">
+                <p class="auto-fill-msg">Challenge auto-filled from Service tab.</p>
+                <div class="info-box" id="challenge-auto-info"></div>
+                <button onclick="acceptAutoChallenge()">Accept Challenge</button>
+            </div>
+            <div id="challenge-manual-area">
+                <p>Paste the challenge JSON from the Service operator:</p>
+                <textarea id="challenge-input" rows="6" placeholder='{"nonce":"...","service_aid":"...",...}'></textarea>
+                <button onclick="receiveChallenge()">Load Challenge</button>
+            </div>
+            <div class="info-box hidden" id="challenge-info"></div>
+        </section>
+
+        <section class="step hidden" id="ent-step-5">
+            <h3>Step 5 — Sign Challenge</h3>
+            <p>Run the following command to sign the challenge:</p>
+            <div class="cli-snippet" data-copy id="sign-cmd"></div>
+            <p>Paste the signed output from dkms:</p>
+            <textarea id="signed-output" rows="3" placeholder='signed data...'></textarea>
+            <button onclick="assembleResponse()">Assemble Response</button>
+            <div class="output-box hidden" id="response-output"></div>
+            <div class="transfer-action hidden" id="response-transfer">
+                <button class="transfer-btn" onclick="sendResponseToService()">Send to Service tab &#10140;</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- CEREMONY LOG -->
+    <div id="log-panel">
+        <h3>Ceremony Log</h3>
+        <div id="log-entries"></div>
+    </div>
+
+    <!-- Shared state bridge -->
+    <script type="module">
+        import init, { DauthzService, JsChallengeResponse } from './pkg/dauthz_wasm.js';
+
+        window.wasm = { DauthzService, JsChallengeResponse };
+        window.svcAid = null;
+        window.svcOobi = null;
+        window.serviceState = null;
+        window.currentChallenge = null;
+        window.entityState = { aid: null, oobi: null };
+        window.receivedChallenge = null;
+
+        // Cross-tab clipboard
+        window.clipboard = { challengeJson: null, responseJson: null };
+
+        async function boot() {
+            try {
+                await init();
+                log('WASM module loaded');
+            } catch (e) {
+                log('Failed to load WASM: ' + e.message);
+            }
+        }
+        boot();
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>
