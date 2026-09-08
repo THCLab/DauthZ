@@ -16,7 +16,7 @@ drift check; see `scripts/sync-login-ui.sh` in each plugin repo.
 assets/
   dauthz-login.html   skeleton (per-plugin values injected, not hard-coded)
   dauthz-login.css    base styles + Cyfron design tokens (:root variables)
-  dauthz-login.js     all behaviour; reads window.DAUTHZ_LOGIN
+  dauthz-login.js     all behaviour; reads the JSON config data block
   qrcode.min.js       vendored QR renderer (rendered client-side; the deep link
                       never leaves the device)
 VERSION               bump on any asset change; drift checks compare against it
@@ -29,12 +29,15 @@ VERSION               bump on any asset change; drift checks compare against it
 2. Serve `dauthz-login.html` with three textual substitutions:
    - `{{ASSET_BASE}}` → the URL base where the three static files are served.
    - `{{THEME_HEAD}}` → extra `<link>`/`<style>` for a theme override, or `""`.
-   - `/*__DAUTHZ_CONFIG__*/{}` → a single JSON object (the config below).
+   - `/*__DAUTHZ_CONFIG__*/{}` → a single JSON object (the config below). It
+     sits inside `<script id="dauthz-login-config" type="application/json">`,
+     a JSON data block rather than executable JavaScript; substitute the token
+     with bare JSON, not with an assignment statement.
 
 No other templating is required; the JS fills every per-plugin text node from
 config at load.
 
-## Config contract (`window.DAUTHZ_LOGIN`)
+## Config contract (`#dauthz-login-config`)
 
 ```jsonc
 {
@@ -49,6 +52,32 @@ config at load.
 
 `registrationMode` accepts either `invite_only` or `invite-only`; the JS
 normalises the hyphen so Gerrit and Buildbot can pass their native spelling.
+
+Bundles before 1.1.0 delivered this object as an inline
+`<script>window.DAUTHZ_LOGIN = …</script>`. The JS still falls back to
+`window.DAUTHZ_LOGIN` if it is defined, so a backend can migrate its
+substitution at its own pace, but the inline form requires
+`script-src 'unsafe-inline'` and should be retired.
+
+## Content-Security-Policy
+
+The bundle is CSP-clean: no inline `<script>`, no inline event handlers
+(`onclick=`), no `eval`. Hosts with a strict policy — OpenProject, for one —
+can serve it without weakening `script-src`. What it does need:
+
+```
+script-src  'self';                                   # the two bundled .js files
+style-src   'self' https://fonts.googleapis.com;      # webfont stylesheet
+font-src    https://fonts.gstatic.com;                # webfont files
+img-src     'self' data:;                             # QR code renders to a data: URI
+connect-src 'self';                                   # /connect/init and status polling
+```
+
+The two font entries are only needed if the host allows the Google Fonts
+`<link>`; drop it (or override it via `{{THEME_HEAD}}`) and the page falls back
+to the system font stack with no other change. `img-src data:` is required
+because the vendored QR renderer draws to a canvas and emits a `data:` image.
+Adjust the origins if the assets are served from a separate host.
 
 ## Backend flow contract (unchanged, already shared)
 
