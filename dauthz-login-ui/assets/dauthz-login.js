@@ -1,7 +1,11 @@
 // Shared DAuthZ login behaviour. Consumed verbatim by every plugin (Gerrit,
 // Buildbot, …) via the dauthz-login-ui bundle. All per-plugin values arrive in
-// a single JSON config object the backend injects as window.DAUTHZ_LOGIN — this
+// a single JSON config object the backend injects into the
+// <script id="dauthz-login-config" type="application/json"> data block — this
 // file is fully static and contains no server-side template tokens.
+//
+// The bundle is Content-Security-Policy clean: no inline scripts, no inline
+// event handlers, no eval. It runs under `script-src 'self'` with no nonce.
 //
 // Config contract (see dauthz-login-ui/README.md):
 //   {
@@ -13,7 +17,26 @@
 //     "buildVersion":     "v1.2-abc1234"
 //   }
 (function() {
-    const CFG = window.DAUTHZ_LOGIN || {};
+    // Read config from the JSON data block. A backend that still injects a
+    // window.DAUTHZ_LOGIN object (pre-1.1 bundles) keeps working.
+    function readConfig() {
+        const el = document.getElementById('dauthz-login-config');
+        if (el) {
+            // Tolerate the unsubstituted /*__DAUTHZ_CONFIG__*/ marker that
+            // makes the HTML openable as-is for local development.
+            const raw = el.textContent.replace(/^\s*\/\*[^]*?\*\//, '').trim();
+            if (raw) {
+                try {
+                    return JSON.parse(raw);
+                } catch (e) {
+                    console.error('dauthz: invalid login config JSON', e);
+                }
+            }
+        }
+        return window.DAUTHZ_LOGIN || {};
+    }
+
+    const CFG = readConfig();
     const PLUGIN_BASE = CFG.pluginBase || '';
     // Normalise the registration mode so the two backends (Gerrit emits
     // "invite_only", Buildbot "invite-only") drive the same UI branch.
@@ -47,7 +70,7 @@
     let currentStatusUrl = null;
     let currentFinishUrl = null;
 
-    window.copyConnectUrl = async function() {
+    async function copyConnectUrl() {
         const btn = document.getElementById('copy-url-btn');
         const statusEl = document.getElementById('connect-status');
 
@@ -83,7 +106,7 @@
             btn.textContent = 'Copy the URL';
             setStatus(statusEl, 'error', 'Request failed: ' + e.message);
         }
-    };
+    }
 
     // ======== Sign in from your phone (QR code) ========
     // Renders the same connect deep link as a QR code so it can be scanned
@@ -91,7 +114,7 @@
     // path: this tab keeps polling and signs in once the phone approves.
     let qrShown = false;
 
-    window.showQrCode = async function() {
+    async function showQrCode() {
         const btn = document.getElementById('qr-btn');
         const statusEl = document.getElementById('connect-status');
         const wrap = document.getElementById('qr-wrap');
@@ -149,7 +172,7 @@
             btn.disabled = false;
             btn.textContent = 'Sign in from your phone';
         }
-    };
+    }
 
     function doCopy(text, btn, idleLabel, doneLabel) {
         const done = () => {
@@ -192,7 +215,7 @@
         document.getElementById('invite-token').value = invitePrefill;
     }
 
-    window.connectWithCyfron = async function() {
+    async function connectWithCyfron() {
         const btn = document.getElementById('connect-btn');
         const statusEl = document.getElementById('connect-status');
         btn.disabled = true;
@@ -226,7 +249,7 @@
             setStatus(statusEl, 'error', 'Request failed: ' + e.message);
             btn.disabled = false;
         }
-    };
+    }
 
     function pollUntilSettled(statusUrl, finishBase, statusEl, btn) {
         if (activePoll) clearInterval(activePoll);
@@ -287,4 +310,16 @@
     }
 
     document.querySelectorAll('.service-info .value').forEach(setupCopy);
+
+    // ======== Wire up the buttons ========
+    // Bound here rather than with inline onclick= attributes so the page needs
+    // no script-src 'unsafe-inline' from its host's Content-Security-Policy.
+    function onClick(id, handler) {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', handler);
+    }
+
+    onClick('connect-btn', connectWithCyfron);
+    onClick('copy-url-btn', copyConnectUrl);
+    onClick('qr-btn', showQrCode);
 })();
