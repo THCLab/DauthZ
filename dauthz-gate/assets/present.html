@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Present your credential</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="{{ASSET_BASE}}/dauthz-login.css">
+    {{THEME_HEAD}}
+    <style>
+        textarea { width: 100%; min-height: 160px; font-family: 'JetBrains Mono', monospace; font-size: 12px; box-sizing: border-box; }
+        .steps { margin: 0 0 12px; padding-left: 18px; }
+        .steps li { margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="eyebrow">Cyfron · Credential</div>
+        <h1><span>Present your credential</span></h1>
+        <p class="lede">You are signed in to <strong>{{SERVICE_NAME}}</strong> as <span class="attrs">{{AID}}</span>.</p>
+        <p class="lede">{{REQUIREMENT}}</p>
+        {{ERROR_BLOCK}}
+        <ol class="steps">
+            <li>Open <strong>Credentials</strong> in your Cyfron app and choose the credential.</li>
+            <li>Click <strong>Present</strong> and copy the proof text (or save it as a file).</li>
+            <li>Paste it below, or pick the file.</li>
+        </ol>
+        <form method="post" action="{{ACTION}}">
+            <input type="hidden" name="return" value="{{RETURN}}">
+            <div class="field">
+                <div class="field-label"><span>Proof</span><span class="hint">JSON with acdc and issuer_cesr</span></div>
+                <textarea name="proof" id="proof" placeholder='{"acdc":"…","issuer_cesr":"…","disclosed":[…]}'></textarea>
+            </div>
+            <div class="field">
+                <div class="field-label"><span>or pick the file</span></div>
+                <input type="file" id="proof-file" accept=".json,.txt,application/json,text/plain">
+            </div>
+            <button class="cy-btn cy-btn-outline" type="submit"><span>Present</span></button>
+        </form>
+        <p class="lede"><a class="copy-url-link" href="{{LOGOUT}}">Sign out</a></p>
+    </div>
+    <script>
+        document.getElementById('proof-file').addEventListener('change', function (ev) {
+            var f = ev.target.files && ev.target.files[0];
+            if (!f) return;
+            var r = new FileReader();
+            r.onload = function () { document.getElementById('proof').value = r.result; };
+            r.readAsText(f);
+        });
+    </script>
+</body>
+</html>

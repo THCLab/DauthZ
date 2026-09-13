@@ -1,0 +1,53 @@
+# dauthz-gate configuration. Every key can also be set as an environment
+# variable: DAUTHZ_<SECTION>__<KEY>, e.g. DAUTHZ_SITE__ORIGIN.
+
+data_dir = "/data"           # service identity + generated cookie secret
+challenge_ttl_secs = 300     # how long a sign-in attempt stays open
+
+[site]
+origin = "https://docs.example.org"   # what browsers AND wallets can reach
+name = "NextGen Docs"
+# logo_url = "https://docs.example.org/logo.png"
+path_prefix = "/dauthz"               # must match the nginx include
+
+[http]
+listen = "0.0.0.0:8088"
+
+[cookie]
+name = "dauthz_session"
+ttl_secs = 43200         # 12 h; sessions are stateless and cannot be revoked earlier
+secure = true            # set false only for plain-HTTP LAN tests
+# secret = "…"           # otherwise generated once into <data_dir>/cookie-secret
+
+[cyfron]
+# The SP-side cyfron-serviced. Either url+token, or the endpoint.json it writes.
+url = "http://cyfron-serviced:51234"
+token = "change-me"
+# endpoint_file = "/cyfron/endpoint.json"
+deep_link_scheme = "cyfron"
+timeout_secs = 90
+
+[identity]
+# Left empty, the gate creates "<site.name> gate" on the daemon and persists it.
+# name = "NextGen Docs gate"
+# alias = "nextgen-docs-gate-1a2b3c4d"   # reuse an existing alias
+# witness_locations = ['{"eid":"B…","scheme":"http","url":"https://witness1.dkms.colossi.network/"}']
+# watcher_location = '{"eid":"B…","scheme":"http","url":"https://watcher.dkms.colossi.network/"}'
+
+[policy]
+# allowlist : only the AIDs below
+# credential: any AID presenting a valid credential matching the triple below
+# open      : any AID that can sign (demo)
+mode = "allowlist"
+allowed_aids = ["EAbc…", "EDef…"]
+
+# Credential mode (Research Passport):
+# schema_said = "E…"                  # OCA bundle SAID the ACDC's `s` must equal
+# issuer_aid  = "E…"                  # consortium authority AID
+# issuer_oobi = '[{"eid":"B…","scheme":"http","url":"…"},{"cid":"E…","role":"witness","eid":"B…"}]'
+# revocation_check = "if_known"       # off | if_known | required
+# presentation = "both"               # inline (wallet callback) | page (paste proof) | both
+# requirement_text = "Requires a NextGen Research Passport."
+
+[ui]
+# theme_head = '<link rel="stylesheet" href="/theme.css">'
