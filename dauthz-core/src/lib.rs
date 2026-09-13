@@ -2,7 +2,7 @@ pub mod ceremony;
 pub mod challenge;
 pub mod error;
 pub mod payload;
-pub mod verification;
+pub mod sp_auth;
 
 pub use ceremony::CeremonyState;
 pub use challenge::{
