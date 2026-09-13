@@ -4,6 +4,14 @@ KERI-based identification and authorization framework. Client and server SDKs
 that orchestrate registration, login ceremonies, delegating
 all cryptographic operations to the `dkms` CLI binary.
 
+## Resource-server integrations
+
+| Directory | What it is |
+|---|---|
+| `dauthz-gate/` | nginx `auth_request` sidecar: sign in to any static site with a Cyfron AID, optionally gated on a consortium-issued credential. See `dauthz-gate/README.md`. |
+| `dauthz-login-ui/` | the shared "Connect with Cyfron" page every DauthZ server serves (Gerrit plugin, Buildbot, the gate). Canonical copy; consumers vendor or embed it. |
+| `dauthz-core/src/sp_auth.rs` | the wire vocabulary of the Cyfron ceremony: deep link builder, signed-envelope parsing, callback body, presented-credential proof. |
+
 ## Architecture
 
 ```
