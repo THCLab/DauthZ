@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
 use dauthz_core::challenge::{CeremonyPurpose, Challenge};
-use dauthz_core::verification::VerificationResult;
+use dauthz_core::challenge::VerificationResult;
 
 use crate::store::{MemoryAccountStore, MemoryChallengeStore, MemorySessionStore, Session};
 use crate::types::{JsChallenge, JsChallengeResponse, JsVerificationResult};

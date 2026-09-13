@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
 use dauthz_core::challenge::{CeremonyPurpose, Challenge, ChallengeResponse, SessionToken};
-use dauthz_core::verification::VerificationResult;
+use dauthz_core::challenge::VerificationResult;
 
 // ---------------------------------------------------------------------------
 // Challenge

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use dauthz_core::challenge::{CeremonyPurpose, Challenge, ChallengeResponse};
-use dauthz_core::verification::VerificationResult;
+use dauthz_core::challenge::VerificationResult;
 use dauthz_core::{DauthzError, Result};
 
 use crate::account::{Account, AccountStore};

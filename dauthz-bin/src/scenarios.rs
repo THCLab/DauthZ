@@ -176,12 +176,12 @@ pub async fn test_registration() {
     };
 
     match service.handle_response(response, verified).unwrap() {
-        dauthz_core::verification::VerificationResult::Registered { aid, account_id } => {
+        dauthz_core::challenge::VerificationResult::Registered { aid, account_id } => {
             println!("\nRegistration successful!");
             println!("  AID:       {aid}");
             println!("  Account:   {account_id}");
         }
-        dauthz_core::verification::VerificationResult::Invalid(reason) => {
+        dauthz_core::challenge::VerificationResult::Invalid(reason) => {
             println!("\nRegistration failed: {reason}");
         }
         _ => unreachable!(),
@@ -291,7 +291,7 @@ pub async fn test_login() {
     };
 
     match service.handle_response(response, verified).unwrap() {
-        dauthz_core::verification::VerificationResult::Authenticated {
+        dauthz_core::challenge::VerificationResult::Authenticated {
             aid,
             account_id,
             session_token,
@@ -301,7 +301,7 @@ pub async fn test_login() {
             println!("  Account:   {account_id}");
             println!("  Token:     {session_token}");
         }
-        dauthz_core::verification::VerificationResult::Invalid(reason) => {
+        dauthz_core::challenge::VerificationResult::Invalid(reason) => {
             println!("\nLogin failed: {reason}");
         }
         _ => unreachable!(),
