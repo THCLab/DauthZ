@@ -88,7 +88,7 @@ The gate needs the daemon on a TCP listener with bearer auth:
 ```
 cyfron-serviced --listen tcp://0.0.0.0:51234 --data-dir /data \
   --mesagkesto-url https://messagebox.dkms.colossi.network --service
-CYFRON_SERVICED_ALLOW_REMOTE_BIND=1  CYFRON_AUTH_TOKEN=<shared token>
+CYFRON_SERVICED_ALLOW_REMOTE_BIND=true  CYFRON_AUTH_TOKEN=<shared token>
 ```
 
 Do not publish the port; the gate reaches it on the docker network.
@@ -106,6 +106,14 @@ a fixed token (the gate re-reads it on a 401).
 Credential mode knobs: `revocation_check` (`off`, `if_known` = deny only
 when the registry says revoked, `required`), `presentation` (`inline`,
 `page`, `both`), `requirement_text` for the login page.
+
+Revocation is answered by the SP daemon querying the issuer's TEL through
+the watcher; the gate never talks to a registry itself. With `if_known` a
+registry that cannot be reached does not block sign-in, which is the
+signature-only trust model; `required` turns that into a denial. In the
+sandbox the public watcher never delivered a registry TEL, so treat
+revocation as not yet observable from a third-party daemon (see
+`sandbox/README.md`); credential `exp` and the cookie TTL bound exposure.
 
 ### Research Passport runbook (credential mode)
 
@@ -143,6 +151,12 @@ cargo run -p dauthz-gate -- serve --mock-bridge  # demo without a daemon (no rea
 MOCK=1 USER_AID=EA… SITE_URL=http://localhost:8088 scripts/smoke-callback.sh
 CYFRON_URL=… CYFRON_TOKEN=… SITE_URL=http://localhost:8080 scripts/smoke-callback.sh   # real daemon
 ```
+
+`sandbox/` runs the whole thing for real: nginx, the gate, its daemon,
+and a second daemon that plays the wallet and the consortium authority
+against the public dkms witness. `make up && make smoke`, then `make
+passport && make smoke-credential`, `make smoke-present-page`, `make
+revoke smoke-revoked`. See `sandbox/README.md`.
 
 ## Operational notes
 
