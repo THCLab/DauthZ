@@ -1,0 +1,108 @@
+# dauthz-gate sandbox: nginx + static site + gate + two cyfron-serviced daemons.
+#
+#   sp-cyfron    the gate's own daemon (verifier); not published on the host
+#   user-cyfron  plays the user's wallet AND the consortium authority; published
+#                on 127.0.0.1:51235 so smoke scripts can sign and issue from the host
+#
+# Binaries are built on the host (make build) and bind-mounted. See Makefile.
+
+services:
+  sp-cyfron:
+    build: ./runtime
+    image: dauthz-sandbox-runtime:latest
+    command:
+      - /usr/local/bin/cyfron-serviced
+      - --listen
+      - tcp://0.0.0.0:51234
+      - --data-dir
+      - /data
+      - --mesagkesto-url
+      - ${MESAGKESTO_URL:-https://messagebox.dkms.colossi.network}
+      - --service
+    environment:
+      CYFRON_SERVICED_ALLOW_REMOTE_BIND: "true"
+      CYFRON_AUTH_TOKEN: ${SP_TOKEN:-sandbox-sp-token}
+      RUST_LOG: ${CYFRON_LOG:-info}
+    volumes:
+      - ${CYFRON_BIN:?run make build}:/usr/local/bin/cyfron-serviced:ro
+      - sp-data:/data
+    healthcheck:
+      test: ["CMD", "test", "-f", "/data/endpoint.json"]
+      interval: 2s
+      timeout: 1s
+      retries: 90
+    restart: unless-stopped
+
+  user-cyfron:
+    image: dauthz-sandbox-runtime:latest
+    command:
+      - /usr/local/bin/cyfron-serviced
+      - --listen
+      - tcp://0.0.0.0:51234
+      - --data-dir
+      - /data
+      - --mesagkesto-url
+      - ${MESAGKESTO_URL:-https://messagebox.dkms.colossi.network}
+      - --service
+    environment:
+      CYFRON_SERVICED_ALLOW_REMOTE_BIND: "true"
+      CYFRON_AUTH_TOKEN: ${USER_TOKEN:-sandbox-user-token}
+      RUST_LOG: ${CYFRON_LOG:-info}
+    volumes:
+      - ${CYFRON_BIN:?run make build}:/usr/local/bin/cyfron-serviced:ro
+      - user-data:/data
+    ports:
+      - "127.0.0.1:${USER_PORT:-51235}:51234"
+    healthcheck:
+      test: ["CMD", "test", "-f", "/data/endpoint.json"]
+      interval: 2s
+      timeout: 1s
+      retries: 90
+    restart: unless-stopped
+
+  dauthz-gate:
+    image: dauthz-sandbox-runtime:latest
+    command: ["/usr/local/bin/dauthz-gate", "serve"]
+    env_file:
+      - .env.policy
+    environment:
+      DAUTHZ_SITE__ORIGIN: ${SITE_ORIGIN:?run via make}
+      DAUTHZ_SITE__NAME: dauthz-gate sandbox
+      DAUTHZ_HTTP__LISTEN: 0.0.0.0:8088
+      DAUTHZ_CYFRON__URL: http://sp-cyfron:51234
+      DAUTHZ_CYFRON__TOKEN: ${SP_TOKEN:-sandbox-sp-token}
+      DAUTHZ_IDENTITY__NAME: sandbox-gate
+      DAUTHZ_IDENTITY__WITNESS_LOCATIONS: ${WITNESS_LOCATION}
+      DAUTHZ_IDENTITY__WATCHER_LOCATION: ${WATCHER_LOCATION}
+      DAUTHZ_COOKIE__SECURE: "false"
+      DAUTHZ_DATA_DIR: /data
+      RUST_LOG: ${GATE_LOG:-info,dauthz_gate=debug}
+    volumes:
+      - ${GATE_BIN:?run make build}:/usr/local/bin/dauthz-gate:ro
+      - gate-data:/data
+    depends_on:
+      sp-cyfron:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8088/dauthz/healthz"]
+      interval: 3s
+      timeout: 3s
+      retries: 100
+    restart: unless-stopped
+
+  web:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../nginx/dauthz-gate.locations.conf:/etc/nginx/dauthz/dauthz-gate.locations.conf:ro
+    ports:
+      - "${SITE_PORT:-8080}:80"
+    depends_on:
+      - dauthz-gate
+    restart: unless-stopped
+
+volumes:
+  sp-data:
+  user-data:
+  gate-data:

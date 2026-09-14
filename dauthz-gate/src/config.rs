@@ -222,6 +222,9 @@ pub struct UiConfig {
 }
 
 /// Accept `["a","b"]`, `"a,b"` or `""` — env vars can only carry strings.
+/// A string that is itself JSON (`[…]` array or a single `{…}` object) is
+/// taken as such rather than split on commas, so LocationScheme entries
+/// like `{"eid":…,"scheme":"http","url":…}` survive.
 fn string_or_list<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Error> {
     #[derive(Deserialize)]
     #[serde(untagged)]
@@ -231,13 +234,31 @@ fn string_or_list<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<String>, D::Err
     }
     Ok(match Raw::deserialize(d)? {
         Raw::List(v) => v,
-        Raw::Text(s) => s
-            .split(',')
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-            .map(str::to_string)
-            .collect(),
+        Raw::Text(s) => parse_list_text(&s),
     })
+}
+
+fn parse_list_text(s: &str) -> Vec<String> {
+    let t = s.trim();
+    if t.starts_with('[') {
+        if let Ok(values) = serde_json::from_str::<Vec<serde_json::Value>>(t) {
+            return values
+                .into_iter()
+                .map(|v| match v {
+                    serde_json::Value::String(s) => s,
+                    other => other.to_string(),
+                })
+                .collect();
+        }
+    }
+    if t.starts_with('{') {
+        return vec![t.to_string()];
+    }
+    t.split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 impl Config {
@@ -357,6 +378,17 @@ mod tests {
         c.validate().unwrap();
         c.policy.issuer_oobi = Some("not json".into());
         assert!(c.validate().is_err());
+    }
+
+    #[test]
+    fn lists_keep_json_entries_intact() {
+        let one = r#"{"eid":"B1","scheme":"http","url":"http://w/"}"#;
+        assert_eq!(parse_list_text(one), vec![one]);
+        let arr = format!("[{one},{}]", r#"{"eid":"B2","scheme":"http","url":"http://x/"}"#);
+        let parsed = parse_list_text(&arr);
+        assert_eq!(parsed.len(), 2);
+        assert!(parsed[0].contains("\"eid\":\"B1\""));
+        assert_eq!(parse_list_text(r#"["a","b"]"#), vec!["a", "b"]);
     }
 
     #[test]

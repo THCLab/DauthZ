@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>dauthz-gate sandbox</title>
+<style>body{font-family:system-ui;max-width:640px;margin:60px auto;padding:0 20px;color:#0e1422}code{background:#eef;padding:2px 6px;border-radius:4px}</style>
+</head>
+<body>
+<h1>You are in.</h1>
+<p>This page is served by nginx from a plain directory; every request passed the <code>auth_request</code> check against dauthz-gate.</p>
+<p><a href="/secret.txt">secret.txt</a> is a static file behind the same gate. <a href="/dauthz/whoami">/dauthz/whoami</a> shows your session; <a href="/dauthz/logout">sign out</a>.</p>
+</body>
+</html>
