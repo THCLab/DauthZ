@@ -14,7 +14,12 @@
 //     "registrationMode": "open" | "invite_only",
 //     "requestedAttrs":   "name",
 //     "serviceOobi":      "[{...}]",
-//     "buildVersion":     "v1.2-abc1234"
+//     "buildVersion":     "v1.2-abc1234",
+//     // Optional, added in 1.2.0 (all backends may omit them):
+//     "returnTo":          "/guides/x",   // sent as ?return= on /connect/init; the
+//                                         // backend redirects there after finish
+//     "hideInvite":        true,          // backend has no invite concept
+//     "accessRequirement": "Requires a …" // extra line under the lede
 //   }
 (function() {
     // Read config from the JSON data block. A backend that still injects a
@@ -38,6 +43,20 @@
 
     const CFG = readConfig();
     const PLUGIN_BASE = CFG.pluginBase || '';
+    // Where to land after sign-in. A backend that gates a whole site passes
+    // the originally requested path here (or as ?return= on this page).
+    const RETURN_TO = CFG.returnTo || new URLSearchParams(window.location.search).get('return') || '';
+
+    // One place builds the /connect/init URL so every entry point (button,
+    // copy-URL, QR) carries the same invite and return parameters.
+    function initUrl() {
+        const params = [];
+        const inviteEl = document.getElementById('invite-token');
+        const invite = inviteEl ? inviteEl.value.trim() : '';
+        if (invite) params.push('invite=' + encodeURIComponent(invite));
+        if (RETURN_TO) params.push('return=' + encodeURIComponent(RETURN_TO));
+        return PLUGIN_BASE + '/connect/init' + (params.length ? '?' + params.join('&') : '');
+    }
     // Normalise the registration mode so the two backends (Gerrit emits
     // "invite_only", Buildbot "invite-only") drive the same UI branch.
     const REG_MODE = (CFG.registrationMode || 'open').replace('-', '_');
@@ -56,6 +75,16 @@
     setText('dz-attrs', CFG.requestedAttrs || 'name');
     setText('dz-svc-oobi', CFG.serviceOobi || '');
     setText('dz-build', CFG.buildVersion || '');
+
+    const requirementEl = document.getElementById('dz-access-requirement');
+    if (requirementEl && CFG.accessRequirement) {
+        requirementEl.textContent = CFG.accessRequirement;
+        requirementEl.classList.remove('hidden');
+    }
+    if (CFG.hideInvite) {
+        const inviteField = document.getElementById('invite-field');
+        if (inviteField) inviteField.classList.add('hidden');
+    }
 
     const chip = document.getElementById('dz-mode-chip');
     if (chip) {
@@ -83,9 +112,7 @@
         // Otherwise fetch a fresh session silently.
         btn.disabled = true;
         btn.textContent = 'Getting URL…';
-        const invite = document.getElementById('invite-token').value.trim();
-        let url = PLUGIN_BASE + '/connect/init';
-        if (invite) url += '?invite=' + encodeURIComponent(invite);
+        const url = initUrl();
         try {
             const resp = await fetch(url, { method: 'POST' });
             const data = await resp.json();
@@ -135,10 +162,7 @@
             // Reuse an existing session if one was already started, otherwise
             // request a fresh one (carrying the invite token like the other flows).
             if (!currentDeepLink) {
-                const invite = document.getElementById('invite-token').value.trim();
-                let url = PLUGIN_BASE + '/connect/init';
-                if (invite) url += '?invite=' + encodeURIComponent(invite);
-                const resp = await fetch(url, { method: 'POST' });
+                const resp = await fetch(initUrl(), { method: 'POST' });
                 const data = await resp.json();
                 if (!resp.ok) {
                     setStatus(statusEl, 'error', 'Could not start: ' + (data.error || resp.statusText));
@@ -221,9 +245,7 @@
         btn.disabled = true;
         setStatus(statusEl, 'pending', 'Requesting connect session…');
 
-        const invite = document.getElementById('invite-token').value.trim();
-        let url = PLUGIN_BASE + '/connect/init';
-        if (invite) url += '?invite=' + encodeURIComponent(invite);
+        const url = initUrl();
 
         try {
             const resp = await fetch(url, { method: 'POST' });

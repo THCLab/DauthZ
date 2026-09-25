@@ -46,9 +46,18 @@ config at load.
   "registrationMode": "open",            // "open" | "invite_only" (or "invite-only")
   "requestedAttrs":   "name",            // human string, e.g. "name, email"
   "serviceOobi":      "[{...}]",         // service OOBI trust anchor
-  "buildVersion":     "v1.2-abc1234"     // provenance string, bottom-right
+  "buildVersion":     "v1.2-abc1234",    // provenance string, bottom-right
+  // Optional, added in 1.2.0:
+  "returnTo":          "/guides/x",      // sent as ?return= on /connect/init
+  "hideInvite":        true,             // hide the invite field (no invites)
+  "accessRequirement": "Requires a …"    // extra sentence under the lede
 }
 ```
+
+`returnTo` is the path to land on after sign-in; a backend that gates a whole
+site passes the originally requested path here (the JS also picks up
+`?return=` from the login page URL). Every `/connect/init` call — button,
+copy-URL and QR — carries it together with the invite token.
 
 `registrationMode` accepts either `invite_only` or `invite-only`; the JS
 normalises the hyphen so Gerrit and Buildbot can pass their native spelling.
@@ -79,20 +88,29 @@ to the system font stack with no other change. `img-src data:` is required
 because the vendored QR renderer draws to a canvas and emits a `data:` image.
 Adjust the origins if the assets are served from a separate host.
 
-## Backend flow contract (unchanged, already shared)
+## Backend flow contract
 
 The JS calls, relative to `pluginBase`:
-- `POST {pluginBase}/connect/init` → `{ deep_link, status_url, finish_url }`
+- `POST {pluginBase}/connect/init[?invite=…][&return=…]` →
+  `{ nonce, deep_link, status_url, finish_url, expires_at }`
 - polls `status_url` → `{ state: "pending"|"approved"|"denied"|"expired", … }`
   - approved → `{ handoff_token, new_account? }`
   - denied → `{ reason }` **or** `{ deny_reason }` (both accepted)
-- on approval redirects to `finish_url?token=<handoff_token>`
+- on approval redirects to `finish_url?token=<handoff_token>`; `finish_url`
+  must not carry a query string
 
 ## Theming
 
 Override by redefining the `:root` Cyfron design tokens (or any selector) in a
 stylesheet supplied via `{{THEME_HEAD}}`. Behaviour is identical across plugins;
 only presentation is overridable.
+
+## Consumers
+
+- `dauthz-gate` embeds the files at compile time (`include_str!`).
+- The Gerrit plugin vendors them with `scripts/sync-login-ui.sh`; run it
+  with `DAUTHZ_LOGIN_UI_DIR=<this directory>` after every change here and
+  commit the result.
 
 ## Changing the UI
 
