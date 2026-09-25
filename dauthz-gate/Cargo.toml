@@ -1,7 +1,7 @@
 [package]
 name = "dauthz-gate"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "nginx auth_request gate that signs users in with a Cyfron KERI AID and an optional consortium-issued credential"
 license = "EUPL-1.2"
 

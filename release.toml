@@ -1,0 +1,24 @@
+### Workspace-wide cargo-release defaults.
+### Run `cargo release <patch|minor|major>` from the workspace root.
+
+# All crates move together: one version in [workspace.package], one release
+# commit, one `vX.Y.Z` tag. The crates are not always consumed together, but a
+# single number keeps "which gate goes with which server" unambiguous.
+shared-version = true
+consolidate-commits = true
+
+# Nothing is published to crates.io.
+publish = false
+
+# Two remotes (GitHub and Gerrit), so pushing stays a deliberate manual step.
+push = false
+
+allow-branch = ["master", "main"]
+
+# Only dauthz-core tags and writes the changelog (see its
+# [package.metadata.release]); otherwise every crate would try to create the
+# same `vX.Y.Z` tag and prepend the same section.
+tag = false
+
+pre-release-commit-message = "chore: release {{version}}"
+tag-message = "Release {{version}}"
