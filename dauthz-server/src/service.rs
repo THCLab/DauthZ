@@ -13,7 +13,17 @@ pub struct DauthzService {
     challenge_store: ChallengeStore,
     service_aid: String,
     service_oobi: String,
+    /// When unanswered challenges were last swept (see
+    /// [`ChallengeStore::purge_stale`]).
+    last_sweep: std::sync::Mutex<Option<std::time::Instant>>,
 }
+
+/// How often issuing a challenge also sweeps unanswered ones.
+const CHALLENGE_SWEEP_INTERVAL: std::time::Duration = std::time::Duration::from_secs(600);
+
+/// Age past which an unanswered challenge is removed. Challenges expire
+/// after five minutes; the margin only guards against clock skew.
+const CHALLENGE_STALE_AFTER: std::time::Duration = std::time::Duration::from_secs(3600);
 
 impl DauthzService {
     pub fn new(state_dir: &Path, service_aid: &str, service_oobi: &str) -> Result<Self> {
@@ -25,6 +35,7 @@ impl DauthzService {
             challenge_store,
             service_aid: service_aid.to_string(),
             service_oobi: service_oobi.to_string(),
+            last_sweep: std::sync::Mutex::new(None),
         })
     }
 
@@ -44,7 +55,22 @@ impl DauthzService {
             purpose,
         );
         self.challenge_store.store(&challenge)?;
+        self.sweep_stale_challenges();
         Ok(challenge)
+    }
+
+    /// Remove unanswered challenges, at most once per
+    /// [`CHALLENGE_SWEEP_INTERVAL`]. Best-effort: a failed sweep must never
+    /// cost a caller its challenge.
+    fn sweep_stale_challenges(&self) {
+        let Ok(mut last) = self.last_sweep.lock() else {
+            return;
+        };
+        if last.is_some_and(|t| t.elapsed() < CHALLENGE_SWEEP_INTERVAL) {
+            return;
+        }
+        *last = Some(std::time::Instant::now());
+        let _ = self.challenge_store.purge_stale(CHALLENGE_STALE_AFTER);
     }
 
     pub fn handle_response(
@@ -57,12 +83,13 @@ impl DauthzService {
             .get(&response.nonce)?
             .ok_or(DauthzError::UnknownChallenge)?;
 
-        match stored_challenge.expires_at.parse::<chrono::DateTime<chrono::Utc>>() {
+        match stored_challenge
+            .expires_at
+            .parse::<chrono::DateTime<chrono::Utc>>()
+        {
             Ok(exp) if chrono::Utc::now() > exp => {
                 self.challenge_store.consume(&response.nonce)?;
-                return Ok(VerificationResult::Invalid(
-                    "challenge expired".to_string(),
-                ));
+                return Ok(VerificationResult::Invalid("challenge expired".to_string()));
             }
             Err(_) => {
                 return Ok(VerificationResult::Invalid(
