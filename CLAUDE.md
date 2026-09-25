@@ -17,6 +17,20 @@ cargo run -p dauthz-bin -- test-full     # run all ceremony scenarios end-to-end
 
 The binary supports `test-registration`, `test-login`, `test-rotation`, and `test-full` subcommands. End-to-end scenarios require a `dkms` binary in PATH (or set `DKMS_BINARY` env var) and KERI infrastructure (witnesses on ports 3232/3233, watcher on 3235).
 
+## Versioning & Releases
+
+All workspace crates share one version, `[workspace.package] version` in the root `Cargo.toml` (crates use `version.workspace = true`). Releases are cut with cargo-release (`release.toml`) and git-cliff (`cliff.toml`):
+
+```sh
+cargo release patch|minor|major            # dry run: shows the bump and changelog hook
+cargo release patch|minor|major --execute  # bump, prepend CHANGELOG.md, commit "chore: release X.Y.Z", tag vX.Y.Z
+git push <remote> master --follow-tags     # pushing is manual (GitHub + Gerrit remotes)
+```
+
+Edit the generated CHANGELOG.md section before pushing if it needs prose. Commits must use Conventional Commits or git-cliff drops them from the changelog.
+
+`dauthz-login-ui/VERSION` is versioned independently: other repos vendor the UI, so bump it on any asset change (see `dauthz-login-ui/README.md`).
+
 ## Architecture
 
 Workspace with four crates:
