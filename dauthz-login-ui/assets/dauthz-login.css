@@ -296,3 +296,6 @@ textarea { min-height: 80px; }
     user-select: none;
     pointer-events: none;
 }
+
+/* 1.2.0: optional access requirement line (e.g. "Requires a Research Passport"). */
+.access-requirement { margin-top: -6px; font-weight: 500; }
