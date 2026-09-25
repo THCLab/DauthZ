@@ -376,7 +376,7 @@ dependencies = [
 
 [[package]]
 name = "dauthz-bin"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "dauthz-client",
  "dauthz-core",
@@ -388,7 +388,7 @@ dependencies = [
 
 [[package]]
 name = "dauthz-client"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "dauthz-core",
  "reqwest",
@@ -398,7 +398,7 @@ dependencies = [
 
 [[package]]
 name = "dauthz-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "serde",
@@ -409,7 +409,7 @@ dependencies = [
 
 [[package]]
 name = "dauthz-gate"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -442,7 +442,7 @@ dependencies = [
 
 [[package]]
 name = "dauthz-server"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "dauthz-core",
@@ -453,7 +453,7 @@ dependencies = [
 
 [[package]]
 name = "dauthz-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "console_error_panic_hook",
