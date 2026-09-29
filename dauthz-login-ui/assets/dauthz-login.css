@@ -248,53 +248,53 @@ textarea { min-height: 80px; }
 }
 .hidden { display: none !important; }
 
-/* ===== Service trust anchor (OOBI) ===== */
+/* ===== Service trust anchor (OOBI) =====
+   The OOBI itself is never rendered — only a one-line explanation and a
+   copy button, so the card doesn't end in a wall of JSON. */
 .service-info {
     margin-top: 24px;
-    padding-top: 20px;
+    padding-top: 16px;
     border-top: 1px solid var(--cy-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 .service-info .label {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 10.5px;
-    letter-spacing: .12em;
+    letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--cy-text-dim);
-    margin-bottom: 6px;
+    min-width: 0;
 }
-.service-info .value {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 11.5px;
-    line-height: 1.45;
-    color: var(--cy-text-muted);
-    word-break: break-all;
+.copy-oobi {
+    flex-shrink: 0;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cy-blue-700);
+    background: var(--cy-surface-soft);
+    border: 1px solid var(--cy-border);
+    border-radius: 8px;
+    padding: 5px 10px;
     cursor: pointer;
-    position: relative;
+    transition: border-color .15s, background .15s;
 }
-.service-info .value:hover::after {
-    content: 'Click to copy';
-    position: absolute; top: -20px; right: 0;
-    font-size: 10px; color: var(--cy-blue); letter-spacing: .04em;
-}
-.service-info .value.copied::after {
-    content: 'Copied';
-    color: var(--cy-success);
+.copy-oobi:hover {
+    border-color: var(--cy-border-strong);
+    background: var(--cy-info-bg);
 }
 
-/* Build provenance — visible but unobtrusive. Bottom-right of the
-   viewport, monospace, dim. user-select:none and pointer-events:none
-   keep it out of the way during normal interaction. */
+/* Version footer — small and dim at the bottom of the card. */
 .dauthz-build {
-    position: fixed;
-    right: 14px;
-    bottom: 10px;
+    margin-top: 18px;
+    text-align: center;
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 11px;
+    font-size: 10.5px;
     color: var(--cy-text-dim);
-    opacity: .45;
+    opacity: .7;
     letter-spacing: .02em;
-    user-select: none;
-    pointer-events: none;
 }
 
 /* 1.2.0: optional access requirement line (e.g. "Requires a Research Passport"). */

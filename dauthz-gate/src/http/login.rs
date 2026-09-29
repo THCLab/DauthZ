@@ -43,7 +43,8 @@ pub async fn login_page(
         "registrationMode": "open",
         "requestedAttrs": "nothing beyond your AID",
         "serviceOobi": identity.as_ref().map(|i| i.oobi.clone()).unwrap_or_default(),
-        "buildVersion": format!("dauthz-gate {} · ui {}", env!("CARGO_PKG_VERSION"), UI_VERSION.trim()),
+        // The page prints its own UI version; this names the backend.
+        "buildVersion": format!("dauthz-gate {}", env!("CARGO_PKG_VERSION")),
         "returnTo": return_to,
         "hideInvite": true,
         "accessRequirement": policy::requirement_text(&gate.config.policy),
@@ -70,4 +71,19 @@ pub async fn asset(Path(file): Path<String>) -> Response {
         body,
     )
         .into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn js_ui_version_matches_version_file() {
+        let expected = format!("const UI_VERSION = '{}';", UI_VERSION.trim());
+        assert!(
+            LOGIN_JS.contains(&expected),
+            "dauthz-login.js UI_VERSION must match dauthz-login-ui/VERSION ({})",
+            UI_VERSION.trim()
+        );
+    }
 }
