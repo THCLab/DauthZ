@@ -73,8 +73,15 @@
     setText('dz-svc-strong', SERVICE_NAME);
     setText('dz-svc-name-oobi', SERVICE_NAME);
     setText('dz-attrs', CFG.requestedAttrs || 'name');
-    setText('dz-svc-oobi', CFG.serviceOobi || '');
-    setText('dz-build', CFG.buildVersion || '');
+    // Kept in step with ../VERSION; dauthz-gate's tests fail on a mismatch.
+    const UI_VERSION = '1.3.0';
+    setText('dz-build', 'DAuthZ login ' + UI_VERSION + (CFG.buildVersion ? ' · ' + CFG.buildVersion : ''));
+
+    const SERVICE_OOBI = (CFG.serviceOobi || '').trim();
+    if (SERVICE_OOBI) {
+        const oobiInfo = document.getElementById('dz-svc-info');
+        if (oobiInfo) oobiInfo.classList.remove('hidden');
+    }
 
     const requirementEl = document.getElementById('dz-access-requirement');
     if (requirementEl && CFG.accessRequirement) {
@@ -322,16 +329,9 @@
         el.classList.remove('hidden');
     }
 
-    function setupCopy(el) {
-        el.addEventListener('click', function() {
-            navigator.clipboard.writeText(el.textContent.trim()).then(function() {
-                el.classList.add('copied');
-                setTimeout(function() { el.classList.remove('copied'); }, 1200);
-            });
-        });
+    function copyServiceOobi() {
+        doCopy(SERVICE_OOBI, document.getElementById('copy-oobi-btn'), 'Copy OOBI', 'Copied!');
     }
-
-    document.querySelectorAll('.service-info .value').forEach(setupCopy);
 
     // ======== Wire up the buttons ========
     // Bound here rather than with inline onclick= attributes so the page needs
@@ -344,4 +344,5 @@
     onClick('connect-btn', connectWithCyfron);
     onClick('copy-url-btn', copyConnectUrl);
     onClick('qr-btn', showQrCode);
+    onClick('copy-oobi-btn', copyServiceOobi);
 })();

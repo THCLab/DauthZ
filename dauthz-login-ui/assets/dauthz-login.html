@@ -62,14 +62,15 @@
 
         <div id="connect-status" class="status hidden"></div>
 
-        <div class="service-info">
-            <div class="label">Service OOBI — proves this is the real <span id="dz-svc-name-oobi"></span></div>
-            <div class="value" id="dz-svc-oobi"></div>
+        <!-- The OOBI is a long JSON blob only a wallet needs, so it stays out
+             of sight: one line explains it, one button copies it. -->
+        <div class="service-info hidden" id="dz-svc-info">
+            <div class="label">Service OOBI · proves this is the real <span id="dz-svc-name-oobi"></span></div>
+            <button id="copy-oobi-btn" class="copy-oobi" type="button">Copy OOBI</button>
         </div>
 
+        <div class="dauthz-build" id="dz-build"></div>
     </div>
-
-    <div class="dauthz-build" id="dz-build"></div>
 
     <script src="{{ASSET_BASE}}/qrcode.min.js"></script>
     <script src="{{ASSET_BASE}}/dauthz-login.js"></script>
