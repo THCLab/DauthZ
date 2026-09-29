@@ -19,7 +19,9 @@ assets/
   dauthz-login.js     all behaviour; reads the JSON config data block
   qrcode.min.js       vendored QR renderer (rendered client-side; the deep link
                       never leaves the device)
-VERSION               bump on any asset change; drift checks compare against it
+VERSION               bump on any asset change; drift checks compare against it.
+                      Also update UI_VERSION in dauthz-login.js (shown in the
+                      page footer); dauthz-gate's tests fail if they differ.
 ```
 
 ## How a backend serves it
@@ -45,8 +47,10 @@ config at load.
   "serviceName":      "Gerrit",          // shown in title, heading, lede, OOBI label
   "registrationMode": "open",            // "open" | "invite_only" (or "invite-only")
   "requestedAttrs":   "name",            // human string, e.g. "name, email"
-  "serviceOobi":      "[{...}]",         // service OOBI trust anchor
-  "buildVersion":     "v1.2-abc1234",    // provenance string, bottom-right
+  "serviceOobi":      "[{...}]",         // service OOBI trust anchor; never shown,
+                                         // only copied via the "Copy OOBI" button
+  "buildVersion":     "v1.2-abc1234",    // backend provenance, appended to the
+                                         // "DAuthZ login <ui version>" footer
   // Optional, added in 1.2.0:
   "returnTo":          "/guides/x",      // sent as ?return= on /connect/init
   "hideInvite":        true,             // hide the invite field (no invites)
