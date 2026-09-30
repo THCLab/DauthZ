@@ -8,7 +8,6 @@ use tokio::process::Command;
 #[derive(Debug, Clone, Deserialize)]
 pub struct AidInfo {
     pub aid: String,
-    pub registry_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -99,11 +98,7 @@ impl DkmsBridge {
                     .and_then(|v| v.as_str())
                     .unwrap_or(trimmed)
                     .to_string();
-                let registry_id = val
-                    .get("registry_id")
-                    .and_then(|v| v.as_str())
-                    .map(String::from);
-                return Ok(AidInfo { aid, registry_id });
+                return Ok(AidInfo { aid });
             }
         }
         if trimmed.is_empty() {
@@ -113,7 +108,6 @@ impl DkmsBridge {
         }
         Ok(AidInfo {
             aid: trimmed.to_string(),
-            registry_id: None,
         })
     }
 
@@ -176,49 +170,11 @@ impl DkmsBridge {
         Ok(lower.contains("success") || lower.contains("valid") || lower == "true")
     }
 
-    // dkms log kel find -a <alias> -i <identifier> [-o <oobi>]
-    pub async fn get_kel(&self, identifier: &str, oobi: Option<&str>) -> Result<String> {
-        let mut args = vec!["log", "kel", "find", "-a", &self.alias, "-i", identifier];
-        if let Some(o) = oobi {
-            args.extend_from_slice(&["-o", o]);
-        }
-        self.run(&args).await
-    }
-
     // dkms log kel rotate -a <alias> -c <config>
     pub async fn rotate(&self, config_path: &Path) -> Result<()> {
         let path = config_path.to_string_lossy().to_string();
         self.run(&["log", "kel", "rotate", "-a", &self.alias, "-c", &path])
             .await?;
         Ok(())
-    }
-
-    // dkms mesagkesto exchange -a <alias> -c <content> -r <receiver>
-    pub async fn exchange_message(&self, content: &str, receiver: &str) -> Result<String> {
-        self.run(&[
-            "mesagkesto",
-            "exchange",
-            "-a",
-            &self.alias,
-            "-c",
-            content,
-            "-r",
-            receiver,
-        ])
-        .await
-    }
-
-    // dkms mesagkesto query -a <alias>
-    pub async fn query_mailbox(&self) -> Result<String> {
-        self.run(&["mesagkesto", "query", "-a", &self.alias]).await
-    }
-
-    // dkms identifier export <ALIAS>
-    pub async fn export_identifier(&self) -> Result<String> {
-        self.run(&["identifier", "export", &self.alias]).await
-    }
-
-    pub fn alias(&self) -> &str {
-        &self.alias
     }
 }
