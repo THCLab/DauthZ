@@ -5,17 +5,9 @@ use dauthz_core::Result;
 
 use crate::transport::Transport;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DauthzClient {
     transport: Transport,
-}
-
-impl Default for DauthzClient {
-    fn default() -> Self {
-        Self {
-            transport: Transport::default(),
-        }
-    }
 }
 
 impl DauthzClient {

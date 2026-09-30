@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use dauthz_client::DauthzClient;
 use dauthz_core::challenge::{CeremonyPurpose, ChallengeResponse};
 use dauthz_server::DauthzService;
 
@@ -123,11 +122,6 @@ pub async fn test_registration() {
         .iter()
         .find(|o| !o.url.is_empty())
         .map(|o| serde_json::to_string(o).unwrap())
-        .unwrap_or_default();
-    let entity_oobi_url = entity_oobis
-        .iter()
-        .find(|o| !o.url.is_empty())
-        .map(|o| o.url.clone())
         .unwrap_or_default();
     println!("Entity OOBI: {entity_oobi}");
 
@@ -334,7 +328,7 @@ witness_to_remove: []
 witness_threshold: 1
 new_next_threshold: 1
 ";
-    if let Err(e) = std::fs::write(&config_path, &config) {
+    if let Err(e) = std::fs::write(&config_path, config) {
         println!("Failed to write rotation config: {e}");
         return;
     }
