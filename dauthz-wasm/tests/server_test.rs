@@ -1,5 +1,5 @@
-use wasm_bindgen_test::*;
 use dauthz_wasm::*;
+use wasm_bindgen_test::*;
 
 fn as_array(val: &wasm_bindgen::JsValue) -> js_sys::Array {
     js_sys::Array::from(val)
@@ -50,7 +50,10 @@ fn test_registration_rejects_invalid_signature() {
     let response = JsChallengeResponse::new("entity-aid", "oobi", &nonce, "signed");
     let result = service.handle_response(&response, false).unwrap();
     assert_eq!(result.kind(), "invalid");
-    assert_eq!(result.reason(), Some("signature verification failed".to_string()));
+    assert_eq!(
+        result.reason(),
+        Some("signature verification failed".to_string())
+    );
 }
 
 #[wasm_bindgen_test]

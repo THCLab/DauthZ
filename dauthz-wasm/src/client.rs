@@ -61,11 +61,8 @@ impl DauthzClient {
         entity_oobi: &str,
         sign_fn: &js_sys::Function,
     ) -> Result<JsSessionToken, JsError> {
-        let challenge = transport::fetch_get_challenge(
-            service_url,
-            CeremonyPurpose::Identification,
-        )
-        .await?;
+        let challenge =
+            transport::fetch_get_challenge(service_url, CeremonyPurpose::Identification).await?;
 
         let signed = call_sign_fn(sign_fn, &challenge).await?;
 

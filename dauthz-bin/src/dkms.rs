@@ -130,8 +130,8 @@ impl DkmsBridge {
         if trimmed.starts_with('[') {
             serde_json::from_str(trimmed).map_err(|e| DauthzError::ParseError(e.to_string()))
         } else {
-            let oobi: OobiInfo =
-                serde_json::from_str(trimmed).map_err(|e| DauthzError::ParseError(e.to_string()))?;
+            let oobi: OobiInfo = serde_json::from_str(trimmed)
+                .map_err(|e| DauthzError::ParseError(e.to_string()))?;
             Ok(vec![oobi])
         }
     }
