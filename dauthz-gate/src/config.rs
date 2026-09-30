@@ -384,7 +384,10 @@ mod tests {
     fn lists_keep_json_entries_intact() {
         let one = r#"{"eid":"B1","scheme":"http","url":"http://w/"}"#;
         assert_eq!(parse_list_text(one), vec![one]);
-        let arr = format!("[{one},{}]", r#"{"eid":"B2","scheme":"http","url":"http://x/"}"#);
+        let arr = format!(
+            "[{one},{}]",
+            r#"{"eid":"B2","scheme":"http","url":"http://x/"}"#
+        );
         let parsed = parse_list_text(&arr);
         assert_eq!(parsed.len(), 2);
         assert!(parsed[0].contains("\"eid\":\"B1\""));

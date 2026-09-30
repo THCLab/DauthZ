@@ -27,16 +27,12 @@ pub async fn fetch_json<T: serde::de::DeserializeOwned>(
     headers
         .set("Content-Type", "application/json")
         .map_err(js_err)?;
-    headers
-        .set("Accept", "application/json")
-        .map_err(js_err)?;
+    headers.set("Accept", "application/json").map_err(js_err)?;
 
-    let window = web_sys::window()
-        .ok_or_else(|| JsError::new("no window available"))?;
-    let resp_value =
-        JsFuture::from(window.fetch_with_request(&request))
-            .await
-            .map_err(js_err)?;
+    let window = web_sys::window().ok_or_else(|| JsError::new("no window available"))?;
+    let resp_value = JsFuture::from(window.fetch_with_request(&request))
+        .await
+        .map_err(js_err)?;
     let resp: Response = resp_value
         .dyn_into()
         .map_err(|_| JsError::new("fetch did not return Response"))?;

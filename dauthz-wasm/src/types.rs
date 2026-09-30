@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
-use dauthz_core::challenge::{CeremonyPurpose, Challenge, ChallengeResponse, SessionToken};
 use dauthz_core::challenge::VerificationResult;
+use dauthz_core::challenge::{CeremonyPurpose, Challenge, ChallengeResponse, SessionToken};
 
 // ---------------------------------------------------------------------------
 // Challenge
@@ -82,12 +82,7 @@ pub struct JsChallengeResponse {
 #[wasm_bindgen]
 impl JsChallengeResponse {
     #[wasm_bindgen(constructor)]
-    pub fn new(
-        entity_aid: &str,
-        entity_oobi: &str,
-        nonce: &str,
-        signed_challenge: &str,
-    ) -> Self {
+    pub fn new(entity_aid: &str, entity_oobi: &str, nonce: &str, signed_challenge: &str) -> Self {
         JsChallengeResponse {
             inner: ChallengeResponse {
                 entity_aid: entity_aid.to_string(),

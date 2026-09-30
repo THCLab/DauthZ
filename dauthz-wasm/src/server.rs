@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
-use dauthz_core::challenge::{CeremonyPurpose, Challenge};
 use dauthz_core::challenge::VerificationResult;
+use dauthz_core::challenge::{CeremonyPurpose, Challenge};
 
 use crate::store::{MemoryAccountStore, MemoryChallengeStore, MemorySessionStore, Session};
 use crate::types::{JsChallenge, JsChallengeResponse, JsVerificationResult};
@@ -82,9 +82,10 @@ impl DauthzService {
 
         match stored.purpose {
             CeremonyPurpose::Registration => {
-                let account_id = self.accounts.create_account(&resp.entity_aid).map_err(
-                    |e: String| JsError::new(&e),
-                )?;
+                let account_id = self
+                    .accounts
+                    .create_account(&resp.entity_aid)
+                    .map_err(|e: String| JsError::new(&e))?;
                 Ok(VerificationResult::Registered {
                     aid: resp.entity_aid.clone(),
                     account_id,
