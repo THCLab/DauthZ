@@ -72,6 +72,26 @@ impl ChallengeStore {
     }
 }
 
+pub fn create_challenge(
+    service_aid: &str,
+    service_oobi: &str,
+    msgbox_oobi: &str,
+    purpose: CeremonyPurpose,
+) -> Challenge {
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    Challenge {
+        nonce: Uuid::new_v4().to_string(),
+        service_aid: service_aid.to_string(),
+        msgbox_oobi: msgbox_oobi.to_string(),
+        service_oobi: service_oobi.to_string(),
+        timestamp: Utc::now().to_rfc3339(),
+        expires_at: (Utc::now() + chrono::Duration::minutes(5)).to_rfc3339(),
+        purpose,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,25 +127,5 @@ mod tests {
             "a live challenge survives"
         );
         let _ = std::fs::remove_dir_all(dir);
-    }
-}
-
-pub fn create_challenge(
-    service_aid: &str,
-    service_oobi: &str,
-    msgbox_oobi: &str,
-    purpose: CeremonyPurpose,
-) -> Challenge {
-    use chrono::Utc;
-    use uuid::Uuid;
-
-    Challenge {
-        nonce: Uuid::new_v4().to_string(),
-        service_aid: service_aid.to_string(),
-        msgbox_oobi: msgbox_oobi.to_string(),
-        service_oobi: service_oobi.to_string(),
-        timestamp: Utc::now().to_rfc3339(),
-        expires_at: (Utc::now() + chrono::Duration::minutes(5)).to_rfc3339(),
-        purpose,
     }
 }
