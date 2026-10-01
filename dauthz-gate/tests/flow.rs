@@ -611,3 +611,25 @@ async fn healthz_reports_readiness() {
     assert_eq!(s, StatusCode::OK);
     assert!(b.contains(r#""policy_mode":"open""#));
 }
+
+#[tokio::test]
+async fn static_dir_is_served_outside_the_prefix_only_when_set() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("index.html"), "<h1>demo</h1>").unwrap();
+    let mut cfg = config(PolicyMode::Open);
+    cfg.site.static_dir = Some(dir.path().to_path_buf());
+    let h = harness(cfg).await;
+    let (s, _, b) = send(&h.app, Request::get("/").body(Body::empty()).unwrap()).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(b, "<h1>demo</h1>");
+    let (s, _, _) = send(
+        &h.app,
+        Request::get("/dauthz/whoami").body(Body::empty()).unwrap(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED, "gate routes still win");
+
+    let h = harness(config(PolicyMode::Open)).await;
+    let (s, _, _) = send(&h.app, Request::get("/").body(Body::empty()).unwrap()).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}

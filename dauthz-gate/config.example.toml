@@ -9,6 +9,8 @@ origin = "https://docs.example.org"   # what browsers AND wallets can reach
 name = "NextGen Docs"
 # logo_url = "https://docs.example.org/logo.png"
 path_prefix = "/dauthz"               # must match the nginx include
+# static_dir = "./site"                # demos only: serve a directory at /,
+#                                      # unprotected (real content goes behind nginx)
 
 [http]
 listen = "0.0.0.0:8088"
