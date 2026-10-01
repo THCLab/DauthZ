@@ -8,6 +8,50 @@
 </head>
 <body>
     <h1>DAuthZ — Ceremony Demo</h1>
+
+    <div class="modes">
+        <button class="mode active" data-mode="manual">Manual ceremony</button>
+        <button class="mode" data-mode="connect">Connect with Cyfron</button>
+    </div>
+
+    <!-- CONNECT MODE: the shared login page, answered by dkms -->
+    <div id="mode-connect" class="hidden">
+        <p class="subtitle">The production flow: the service hands out a <code>cyfron://auth</code> link, a wallet signs it and the browser finishes the sign-in on its own. Here dauthz-gate is the service (verifying with dkms instead of cyfron-serviced) and <code>dkms auth respond</code> is the wallet.</p>
+
+        <section class="step" id="conn-step-gate">
+            <h3>Step 1 — Run the service</h3>
+            <p>Create the service identifier (once), then start dauthz-gate from the repository root. It serves this page too, so open the demo at <code>http://localhost:8088/</code>:</p>
+            <div class="cli-snippet" data-copy>dkms identifier init -a demo-service --witness-url http://172.17.0.1:3232 --witness-url http://172.17.0.1:3233 --watcher-url http://172.17.0.1:3235</div>
+            <div class="cli-snippet" data-copy>cargo run -p dauthz-gate -- --config dauthz-demo/gate.demo.toml serve</div>
+            <div class="info-box" id="conn-gate-status">Checking for dauthz-gate…</div>
+        </section>
+
+        <section class="step" id="conn-step-entity">
+            <h3>Step 2 — Create your identifier</h3>
+            <p>The wallet side is a dkms identifier with a witness, so the service can resolve it:</p>
+            <div class="cli-snippet" data-copy>dkms identifier init -a demo-entity --witness-url http://172.17.0.1:3232 --witness-url http://172.17.0.1:3233 --watcher-url http://172.17.0.1:3235</div>
+            <p>Alias used in the commands below:</p>
+            <input id="conn-alias" type="text" value="demo-entity" spellcheck="false">
+        </section>
+
+        <section class="step" id="conn-step-signin">
+            <h3>Step 3 — Sign in</h3>
+            <p>The button opens the gate's login page. There, press <strong>Copy URL</strong> (the <em>Connect</em> button needs a <code>cyfron://</code> handler) and answer the link with dkms while the page waits:</p>
+            <div class="cli-snippet" data-copy id="conn-respond-cmd"></div>
+            <p class="hint">dkms shows which service is asking and asks before it signs. The login page notices the answer within a second and brings you back here.</p>
+            <button id="conn-signin">Sign in with Cyfron</button>
+        </section>
+
+        <section class="step" id="conn-step-session">
+            <h3>Step 4 — Session</h3>
+            <div class="info-box" id="conn-session">Not signed in.</div>
+            <button id="conn-refresh">Refresh</button>
+            <button class="danger hidden" id="conn-signout">Sign out</button>
+        </section>
+    </div>
+
+    <!-- MANUAL MODE: every dkms step by hand -->
+    <div id="mode-manual">
     <p class="subtitle">Walk through registration and login ceremonies. All dkms CLI actions are done manually — paste output to continue.</p>
 
     <div class="tabs">
@@ -176,6 +220,8 @@
         </section>
     </div>
 
+    </div>
+
     <!-- CEREMONY LOG -->
     <div id="log-panel">
         <h3>Ceremony Log</h3>
@@ -208,5 +254,6 @@
         boot();
     </script>
     <script src="app.js"></script>
+    <script src="connect.js"></script>
 </body>
 </html>

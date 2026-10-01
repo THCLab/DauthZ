@@ -280,3 +280,39 @@ button.danger:hover { background: #f85149; }
     color: #f85149;
     border-color: #da3633;
 }
+
+/* Mode switch (manual ceremony vs. Connect with Cyfron) */
+.modes {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    margin: 1rem 0 1.25rem;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+}
+
+.mode {
+    padding: 0.5rem 1rem;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: #8b949e;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.mode.active { background: #21262d; color: #e6edf3; }
+.mode:hover { background: #21262d; color: #e6edf3; }
+
+.step input[type="text"] {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: #010409;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    color: #e6edf3;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    margin: 0.25rem 0 0.5rem;
+}
