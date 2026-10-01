@@ -5,9 +5,12 @@
 # identity on a cyfron-serviced you control, POSTs the callback, polls
 # status, finishes with a cookie jar and checks the auth_request decision.
 #
-# Two modes:
+# Three modes:
 #   MOCK=1            the gate runs with `serve --mock-bridge`; no daemon needed,
 #                     the "signature" is the literal `-MOCK:<aid>` marker.
+#   DKMS=1            a dkms identifier answers the deep link (`dkms auth respond`),
+#                     as a user without the Cyfron app would. DKMS_ALIAS names it
+#                     (default smoke-user); it must exist and have a witness.
 #   (default)         a real daemon: CYFRON_URL + CYFRON_TOKEN (or CYFRON_ENDPOINT_FILE)
 #                     and USER_ALIAS name an identity there that signs the envelope.
 #
@@ -24,6 +27,7 @@
 #   PRESENT_MODE inline (default): the credential rides in the callback (envelope v2);
 #                page: sign in without it, then POST the proof to /present with the cookie
 #   EXPECT_DENY  set to 1 to assert the callback is refused (e.g. AID not allowlisted)
+#   DKMS_BINARY  DKMS mode: the dkms executable (default: dkms in PATH)
 
 set -euo pipefail
 SITE_URL="${SITE_URL:-http://localhost:8080}"
@@ -35,10 +39,24 @@ echo "-> POST $BASE/connect/init"
 INIT=$(curl -fsS -X POST "$BASE/connect/init?return=%2Fsmoke%3Fok%3D1")
 echo "$INIT" | jq .
 NONCE=$(echo "$INIT" | jq -r .nonce)
+DEEP_LINK=$(echo "$INIT" | jq -r .deep_link)
 STATUS_URL=$(echo "$INIT" | jq -r .status_url)
 FINISH_URL=$(echo "$INIT" | jq -r .finish_url)
 
-if [[ "${MOCK:-0}" == "1" ]]; then
+if [[ "${DKMS:-0}" == "1" ]]; then
+    DKMS_BIN="${DKMS_BINARY:-dkms}"
+    ALIAS="${DKMS_ALIAS:-smoke-user}"
+    PRESENT_ARGS=()
+    if [[ -n "${PRESENT_FILE:-}" && "${PRESENT_MODE:-inline}" == "inline" ]]; then
+        PRESENT_ARGS=(--present "$PRESENT_FILE")
+        echo "-> presenting credential $(jq -r .said "$PRESENT_FILE")"
+    fi
+    echo "-> dkms auth respond as $ALIAS"
+    # --dry-run prints the callback body dkms would POST, so the checks
+    # below run on exactly what the wallet sends.
+    BODY=$("$DKMS_BIN" auth respond -a "$ALIAS" --yes --dry-run "${PRESENT_ARGS[@]}" "$DEEP_LINK")
+    AID=$(echo "$BODY" | jq -r '.entity_oobi | fromjson | map(select(.cid)) | .[0].cid')
+elif [[ "${MOCK:-0}" == "1" ]]; then
     AID="${USER_AID:?USER_AID is required in MOCK mode}"
     OOBI="[{\"eid\":\"BW\",\"scheme\":\"http\",\"url\":\"http://w/\"},{\"cid\":\"$AID\",\"role\":\"witness\",\"eid\":\"BW\"}]"
     PAYLOAD=$(jq -nc --arg nonce "$NONCE" --arg aid "$AID" \
@@ -87,10 +105,12 @@ else
         -d "$(jq -nc --arg a "$ALIAS" --arg p "$PAYLOAD" '{alias:$a, payload:$p}')" | jq -r .cesr)
 fi
 
-BODY=$(jq -nc --arg nonce "$NONCE" --arg oobi "$OOBI" --arg signed "$SIGNED" \
-    '{nonce:$nonce, entity_oobi:$oobi, signed_challenge:$signed, disclosed_attributes:{}, tos_hash:null, decision:"approve"}')
-if [[ -n "${PRESENT_FILE:-}" && "${PRESENT_MODE:-inline}" == "inline" ]]; then
-    BODY=$(echo "$BODY" | jq -c --slurpfile p "$PRESENT_FILE" '. + {presented_credential: {acdc: $p[0].acdc, issuer_cesr: $p[0].issuer_cesr, disclosed: []}}')
+if [[ "${DKMS:-0}" != "1" ]]; then
+    BODY=$(jq -nc --arg nonce "$NONCE" --arg oobi "$OOBI" --arg signed "$SIGNED" \
+        '{nonce:$nonce, entity_oobi:$oobi, signed_challenge:$signed, disclosed_attributes:{}, tos_hash:null, decision:"approve"}')
+    if [[ -n "${PRESENT_FILE:-}" && "${PRESENT_MODE:-inline}" == "inline" ]]; then
+        BODY=$(echo "$BODY" | jq -c --slurpfile p "$PRESENT_FILE" '. + {presented_credential: {acdc: $p[0].acdc, issuer_cesr: $p[0].issuer_cesr, disclosed: []}}')
+    fi
 fi
 echo "-> POST $BASE/connect/callback (aid=$AID)"
 CB_CODE=$(curl -sS -o /tmp/dauthz-smoke-cb.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d "$BODY" "$BASE/connect/callback")

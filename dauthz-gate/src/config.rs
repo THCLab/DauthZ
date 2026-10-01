@@ -14,7 +14,9 @@ pub struct Config {
     pub site: SiteConfig,
     pub http: HttpConfig,
     pub cookie: CookieConfig,
+    pub bridge: BridgeConfig,
     pub cyfron: CyfronConfig,
+    pub dkms: DkmsConfig,
     pub identity: IdentityConfig,
     pub policy: PolicyConfig,
     pub ui: UiConfig,
@@ -30,7 +32,9 @@ impl Default for Config {
             site: SiteConfig::default(),
             http: HttpConfig::default(),
             cookie: CookieConfig::default(),
+            bridge: BridgeConfig::default(),
             cyfron: CyfronConfig::default(),
+            dkms: DkmsConfig::default(),
             identity: IdentityConfig::default(),
             policy: PolicyConfig::default(),
             ui: UiConfig::default(),
@@ -100,6 +104,44 @@ impl Default for CookieConfig {
             ttl_secs: 12 * 3600,
             secure: true,
             domain: None,
+        }
+    }
+}
+
+/// Which KERI runtime verifies signatures.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BridgeKind {
+    /// A `cyfron-serviced` daemon over HTTP (`[cyfron]`).
+    #[default]
+    Cyfron,
+    /// The `dkms` CLI as a subprocess (`[dkms]`).
+    Dkms,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BridgeConfig {
+    pub kind: BridgeKind,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DkmsConfig {
+    /// The dkms-bin executable; `DKMS_BINARY` in the environment wins.
+    pub binary: PathBuf,
+    /// `HOME` for dkms, which keeps identifiers in `$HOME/.dkms-dev-cli`.
+    /// Unset, dkms uses the gate's own home.
+    pub home: Option<PathBuf>,
+    pub timeout_secs: u64,
+}
+
+impl Default for DkmsConfig {
+    fn default() -> Self {
+        Self {
+            binary: PathBuf::from("dkms"),
+            home: None,
+            timeout_secs: 120,
         }
     }
 }
@@ -284,7 +326,10 @@ impl Config {
         if !self.site.path_prefix.starts_with('/') || self.site.path_prefix.ends_with('/') {
             anyhow::bail!("site.path_prefix must start with '/' and not end with one");
         }
-        if self.cyfron.url.is_none() && self.cyfron.endpoint_file.is_none() {
+        if self.bridge.kind == BridgeKind::Cyfron
+            && self.cyfron.url.is_none()
+            && self.cyfron.endpoint_file.is_none()
+        {
             anyhow::bail!("cyfron.url (with cyfron.token) or cyfron.endpoint_file is required");
         }
         if self.identity.aid.is_some() != self.identity.oobi.is_some() {
@@ -363,6 +408,16 @@ mod tests {
             c.callback_url(),
             "https://docs.example.org/dauthz/connect/callback"
         );
+    }
+
+    #[test]
+    fn dkms_bridge_needs_no_daemon_endpoint() {
+        let mut c = base();
+        c.cyfron = CyfronConfig::default();
+        assert!(c.validate().is_err());
+        c.bridge.kind = BridgeKind::Dkms;
+        c.validate().unwrap();
+        assert_eq!(c.dkms.binary, PathBuf::from("dkms"));
     }
 
     #[test]

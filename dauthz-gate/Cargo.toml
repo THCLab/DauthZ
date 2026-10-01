@@ -34,8 +34,8 @@ thiserror = "1"
 anyhow = "1"
 url = "2"
 regex = "1"
+tempfile = "3"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
-tempfile = "3"
