@@ -19,6 +19,16 @@ ttl_secs = 43200         # 12 h; sessions are stateless and cannot be revoked ea
 secure = true            # set false only for plain-HTTP LAN tests
 # secret = "…"           # otherwise generated once into <data_dir>/cookie-secret
 
+[bridge]
+# "cyfron": verify through a cyfron-serviced daemon ([cyfron] below).
+# "dkms":   run the dkms CLI instead ([dkms] below); no daemon needed.
+kind = "cyfron"
+
+# [dkms]
+# binary = "dkms"            # DKMS_BINARY in the environment wins
+# home = "/data/dkms"        # dkms state goes to <home>/.dkms-dev-cli
+# timeout_secs = 120
+
 [cyfron]
 # The SP-side cyfron-serviced. Either url+token, or the endpoint.json it writes.
 url = "http://cyfron-serviced:51234"

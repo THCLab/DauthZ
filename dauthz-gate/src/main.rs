@@ -4,10 +4,11 @@ use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 use dauthz_gate::bridge::cyfron_serviced::CyfronServicedBridge;
+use dauthz_gate::bridge::dkms_cli::DkmsCliBridge;
 use dauthz_gate::bridge::mock::MockBridge;
 use dauthz_gate::bridge::KeriBridge;
 use dauthz_gate::ceremony::Gate;
-use dauthz_gate::config::Config;
+use dauthz_gate::config::{BridgeKind, Config};
 use dauthz_gate::identity::ensure_service_identity;
 use dauthz_gate::session::{load_or_create_secret, CookieCodec};
 use dauthz_gate::store::spawn_reaper;
@@ -67,12 +68,30 @@ fn init_tracing() {
 }
 
 fn real_bridge(cfg: &Config) -> anyhow::Result<Arc<dyn KeriBridge>> {
+    let alias = cfg.identity.alias.as_deref().unwrap_or("gate");
+    if cfg.bridge.kind == BridgeKind::Dkms {
+        let binary = std::env::var_os("DKMS_BINARY")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| cfg.dkms.binary.clone());
+        if cfg.requires_credential() {
+            tracing::warn!(
+                "the dkms bridge checks only the issuer signature of a credential: \
+                 no registry or expiry check (revocation_check=required refuses all)"
+            );
+        }
+        return Ok(Arc::new(DkmsCliBridge::new(
+            binary,
+            cfg.dkms.home.clone(),
+            Duration::from_secs(cfg.dkms.timeout_secs),
+            alias,
+        )));
+    }
     Ok(Arc::new(CyfronServicedBridge::from_config(
         cfg.cyfron.url.as_deref(),
         cfg.cyfron.token.as_deref(),
         cfg.cyfron.endpoint_file.as_deref(),
         Duration::from_secs(cfg.cyfron.timeout_secs),
-        cfg.identity.alias.as_deref().unwrap_or("gate"),
+        alias,
     )?))
 }
 

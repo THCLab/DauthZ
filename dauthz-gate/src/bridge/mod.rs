@@ -1,8 +1,10 @@
 //! The only door to KERI: a trait over the handful of `cyfron-serviced`
 //! endpoints the gate needs, so the ceremony can be tested without a
-//! daemon and so no KERI crate enters this repository.
+//! daemon and so no KERI crate enters this repository. The same trait is
+//! implemented over the `dkms` CLI for deployments without the daemon.
 
 pub mod cyfron_serviced;
+pub mod dkms_cli;
 pub mod mock;
 
 use async_trait::async_trait;

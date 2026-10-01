@@ -13,7 +13,9 @@ browser ──► nginx ──auth_request──► dauthz-gate ──HTTP──
 
 No KERI cryptography runs in the gate. Every signature is verified by a
 `cyfron-serviced` daemon that the gate talks to over HTTP with a bearer
-token; the gate owns the ceremony, the policy and the session cookie.
+token, or, without a daemon, by the `dkms` CLI (see [the dkms
+bridge](#without-cyfron-serviced-the-dkms-bridge)); the gate owns the
+ceremony, the policy and the session cookie.
 
 ## How a sign-in works
 
@@ -95,6 +97,40 @@ Do not publish the port; the gate reaches it on the docker network.
 `cyfron.endpoint_file` can point at the daemon's `endpoint.json` instead of
 a fixed token (the gate re-reads it on a 401).
 
+### Without cyfron-serviced: the dkms bridge
+
+With `bridge.kind = "dkms"` the gate runs [dkms-bin](https://github.com/THCLab/dkms-bin)
+as a subprocess instead of calling a daemon, and users can answer the
+login page's link with `dkms auth respond` instead of the Cyfron app (the
+app works too: the wire format is the same).
+
+```toml
+[bridge]
+kind = "dkms"
+
+[dkms]
+binary = "dkms"              # or DKMS_BINARY in the environment
+home = "/var/lib/dauthz-gate" # dkms state goes to <home>/.dkms-dev-cli
+timeout_secs = 120
+
+[identity]
+alias = "my-gate"            # an existing dkms identifier, or leave unset
+                             # and set witness_locations/watcher_location
+                             # so the gate creates one
+```
+
+The service identifier needs a witness (users' wallets resolve it) and a
+watcher (dkms looks KELs up through it). What the bridge does not do:
+
+- **Delegated devices and multisig members are refused.** `dkms auth
+  verify` authorizes only a signature by the main AID itself; Cyfron
+  wallets that sign with a delegated device AID need the daemon.
+- **Credential mode checks the issuer signature only.** No registry or
+  expiry check: `revocation_check = "required"` refuses every credential,
+  `if_known` and `off` admit any credential the issuer signed.
+- dkms calls run one at a time (its per-identifier database admits one
+  opener), so concurrent sign-ins queue for a few seconds each.
+
 ## Policy
 
 | `policy.mode` | Who gets in |
@@ -150,6 +186,7 @@ cargo test -p dauthz-gate                      # unit + end-to-end with the mock
 cargo run -p dauthz-gate -- serve --mock-bridge  # demo without a daemon (no real signatures!)
 MOCK=1 USER_AID=EA… SITE_URL=http://localhost:8088 scripts/smoke-callback.sh
 CYFRON_URL=… CYFRON_TOKEN=… SITE_URL=http://localhost:8080 scripts/smoke-callback.sh   # real daemon
+DKMS=1 DKMS_ALIAS=alice SITE_URL=http://localhost:8088 scripts/smoke-callback.sh       # dkms as the wallet
 ```
 
 `sandbox/` runs the whole thing for real: nginx, the gate, its daemon,
