@@ -24,6 +24,7 @@ pub type AppState = Arc<Gate>;
 
 pub fn router(gate: AppState) -> Router {
     let prefix = gate.config.site.path_prefix.clone();
+    let gate_static_dir = gate.config.site.static_dir.clone();
     // Only the wallet callback is cross-origin: the desktop/phone daemon
     // POSTs from a non-browser context, and replay is already prevented by
     // the single-use nonce (same reasoning as the Gerrit plugin).
@@ -51,7 +52,11 @@ pub fn router(gate: AppState) -> Router {
         .route("/healthz", get(health::healthz))
         .with_state(gate);
 
-    Router::new().nest(&prefix, inner)
+    let router = Router::new().nest(&prefix, inner);
+    match &gate_static_dir {
+        Some(dir) => router.fallback_service(tower_http::services::ServeDir::new(dir)),
+        None => router,
+    }
 }
 
 /// Read the session cookie, if any, and decode it.

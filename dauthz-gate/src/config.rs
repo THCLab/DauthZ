@@ -55,6 +55,10 @@ pub struct SiteConfig {
     /// URL prefix under which nginx proxies the gate. Every route lives
     /// below it, including the `auth_request` target.
     pub path_prefix: String,
+    /// Serve this directory at `/`, outside the prefix, for demos and local
+    /// testing without nginx. The files are public: the gate does not guard
+    /// what it serves itself; protected content belongs behind nginx.
+    pub static_dir: Option<PathBuf>,
 }
 
 impl Default for SiteConfig {
@@ -64,6 +68,7 @@ impl Default for SiteConfig {
             name: "Protected site".into(),
             logo_url: None,
             path_prefix: "/dauthz".into(),
+            static_dir: None,
         }
     }
 }
