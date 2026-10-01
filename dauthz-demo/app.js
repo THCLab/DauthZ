@@ -110,11 +110,11 @@ function resolveEntityOobi() {
     if (!val) return;
     try {
         const entityOobi = JSON.parse(val);
-        const firstOobi = Array.isArray(entityOobi) ? entityOobi[0] : entityOobi;
-        const oobiFile = JSON.stringify({ oobi: firstOobi.url || firstOobi }, null, 2);
+        // dkms expects the file to hold the JSON array printed by `oobi get`
+        const oobiFile = JSON.stringify(Array.isArray(entityOobi) ? entityOobi : [entityOobi]);
 
         const resolveCmd =
-            `echo '${oobiFile}' > /tmp/dauthz-oobi/entity.json && ` +
+            `mkdir -p /tmp/dauthz-oobi && echo '${oobiFile}' > /tmp/dauthz-oobi/entity.json && ` +
             `dkms identifier oobi resolve -a demo-service -f /tmp/dauthz-oobi/entity.json`;
         $('resolve-entity-cmd').textContent = resolveCmd;
         show('resolve-entity-cmd');
@@ -362,7 +362,8 @@ async function logoutSession(token) {
             log('Session invalidated: ' + token.substring(0, 8) + '...');
             // Verify it's actually invalidated
             const check = window.serviceState.verify_session(token);
-            log('Session verification after logout: ' + JSON.stringify(check));
+            // verify_session returns a Map (serde_wasm_bindgen), which JSON.stringify renders as {}
+            log('Session verification after logout: ' + JSON.stringify(Object.fromEntries(check)));
         } else {
             log('Session not found: ' + token.substring(0, 8) + '...');
         }
@@ -437,11 +438,11 @@ function resolveServiceOobiSetup() {
     if (!val) return;
     try {
         const svcOobi = JSON.parse(val);
-        const firstOobi = Array.isArray(svcOobi) ? svcOobi[0] : svcOobi;
-        const oobiFile = JSON.stringify({ oobi: firstOobi.url || firstOobi }, null, 2);
+        // dkms expects the file to hold the JSON array printed by `oobi get`
+        const oobiFile = JSON.stringify(Array.isArray(svcOobi) ? svcOobi : [svcOobi]);
 
         const resolveCmd =
-            `echo '${oobiFile}' > /tmp/dauthz-oobi/service.json && ` +
+            `mkdir -p /tmp/dauthz-oobi && echo '${oobiFile}' > /tmp/dauthz-oobi/service.json && ` +
             `dkms identifier oobi resolve -a demo-entity -f /tmp/dauthz-oobi/service.json`;
         $('resolve-svc-cmd').textContent = resolveCmd;
         show('resolve-svc-cmd');
