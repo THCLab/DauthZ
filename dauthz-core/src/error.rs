@@ -35,6 +35,9 @@ pub enum DauthzError {
     #[error("malformed signed envelope: {0}")]
     Envelope(String),
 
+    #[error("invalid deep link: {0}")]
+    DeepLink(String),
+
     #[error("access denied by policy: {0}")]
     PolicyDenied(String),
 
