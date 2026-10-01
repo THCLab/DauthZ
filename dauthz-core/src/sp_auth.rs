@@ -226,6 +226,143 @@ pub fn build_deep_link(scheme: &str, p: &DeepLinkParams<'_>) -> String {
     out
 }
 
+/// A parsed `cyfron://auth?…` deep link: the owned counterpart of
+/// [`DeepLinkParams`], for wallets that receive a link rather than build
+/// one. `scheme` is kept so a link can be rebuilt byte for byte.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeepLink {
+    pub scheme: String,
+    pub nonce: String,
+    pub service_aid: String,
+    pub service_oobi: String,
+    pub sp_name: String,
+    pub sp_origin: Option<String>,
+    pub sp_logo: Option<String>,
+    pub purpose: CeremonyPurpose,
+    pub requested_attrs: Option<String>,
+    pub callback_url: String,
+    pub invite: Option<String>,
+    pub tos_uri: Option<String>,
+    pub tos_hash: Option<String>,
+    pub requested_credentials: Option<String>,
+}
+
+impl DeepLink {
+    pub fn as_params(&self) -> DeepLinkParams<'_> {
+        DeepLinkParams {
+            nonce: &self.nonce,
+            service_aid: &self.service_aid,
+            service_oobi: &self.service_oobi,
+            sp_name: &self.sp_name,
+            sp_origin: self.sp_origin.as_deref(),
+            sp_logo: self.sp_logo.as_deref(),
+            purpose: self.purpose.clone(),
+            requested_attrs: self.requested_attrs.as_deref(),
+            callback_url: &self.callback_url,
+            invite: self.invite.as_deref(),
+            tos_uri: self.tos_uri.as_deref(),
+            tos_hash: self.tos_hash.as_deref(),
+            requested_credentials: self.requested_credentials.as_deref(),
+        }
+    }
+
+    /// Attribute names the service asks to have disclosed, in link order.
+    pub fn requested_attr_names(&self) -> Vec<&str> {
+        self.requested_attrs
+            .as_deref()
+            .map(|a| {
+                a.split(',')
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+}
+
+/// Parse a deep link produced by [`build_deep_link`] (or any server that
+/// follows the same shape). Unknown parameters are ignored so servers can
+/// add fields without breaking older wallets; the ones every ceremony
+/// needs are required.
+pub fn parse_deep_link(link: &str) -> Result<DeepLink> {
+    let bad = DauthzError::DeepLink;
+    let link = link.trim();
+    let (scheme, rest) = link
+        .split_once("://")
+        .ok_or_else(|| bad("missing scheme".into()))?;
+    if scheme.is_empty() {
+        return Err(bad("missing scheme".into()));
+    }
+    let (host, query) = rest.split_once('?').unwrap_or((rest, ""));
+    if host.trim_end_matches('/') != "auth" {
+        return Err(bad(format!(
+            "expected {scheme}://auth, got {scheme}://{host}"
+        )));
+    }
+
+    let mut params = BTreeMap::new();
+    for pair in query.split('&').filter(|p| !p.is_empty()) {
+        let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
+        params
+            .entry(form_urldecode(k)?)
+            .or_insert(form_urldecode(v)?);
+    }
+    let mut take = |k: &str| params.remove(k).filter(|v| !v.is_empty());
+    let missing = |k: &str| bad(format!("missing {k}"));
+
+    let nonce = take("nonce").ok_or_else(|| missing("nonce"))?;
+    let service_aid = take("service_aid").ok_or_else(|| missing("service_aid"))?;
+    let service_oobi = take("service_oobi").ok_or_else(|| missing("service_oobi"))?;
+    let callback_url = take("callback_url").ok_or_else(|| missing("callback_url"))?;
+    let purpose = match take("purpose").as_deref() {
+        None | Some("identification") => CeremonyPurpose::Identification,
+        Some("registration") => CeremonyPurpose::Registration,
+        Some(other) => return Err(bad(format!("unknown purpose '{other}'"))),
+    };
+    Ok(DeepLink {
+        scheme: scheme.to_string(),
+        nonce,
+        service_aid,
+        service_oobi,
+        sp_name: take("sp_name").unwrap_or_default(),
+        sp_origin: take("sp_origin"),
+        sp_logo: take("sp_logo"),
+        purpose,
+        requested_attrs: take("requested_attrs"),
+        callback_url,
+        invite: take("invite"),
+        tos_uri: take("tos_uri"),
+        tos_hash: take("tos_hash"),
+        requested_credentials: take("requested_credentials"),
+    })
+}
+
+/// Inverse of [`form_urlencode`]: `+` is a space, `%XX` an escaped byte;
+/// the decoded bytes must be UTF-8.
+pub fn form_urldecode(s: &str) -> Result<String> {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'+' => out.push(b' '),
+            b'%' => {
+                let hex = bytes
+                    .get(i + 1..i + 3)
+                    .and_then(|h| std::str::from_utf8(h).ok())
+                    .and_then(|h| u8::from_str_radix(h, 16).ok())
+                    .ok_or_else(|| DauthzError::DeepLink(format!("bad percent-escape in '{s}'")))?;
+                out.push(hex);
+                i += 2;
+            }
+            b => out.push(b),
+        }
+        i += 1;
+    }
+    String::from_utf8(out)
+        .map_err(|_| DauthzError::DeepLink(format!("'{s}' does not decode to UTF-8")))
+}
+
 /// `application/x-www-form-urlencoded` encoding with the same alphabet as
 /// Java's `URLEncoder.encode(s, UTF_8)`: `A-Za-z0-9.-*_` pass through,
 /// space becomes `+`, everything else is `%XX` over UTF-8 bytes.
@@ -363,6 +500,58 @@ mod tests {
         };
         assert!(build_deep_link("cyfron", &with_hash)
             .ends_with("&tos_uri=http%3A%2F%2Ftos&tos_hash=EH"));
+    }
+
+    #[test]
+    fn deep_link_parses_back_to_what_was_built() {
+        let oobi = r#"[{"eid":"BW1","scheme":"http","url":"http://w1:3232/"},{"cid":"ESVC","role":"witness","eid":"BW1"}]"#;
+        let params = DeepLinkParams {
+            nonce: "0b6c-1",
+            service_aid: "ESVC",
+            service_oobi: oobi,
+            sp_name: "Gerrit Review — ÄÖ",
+            sp_origin: Some("https://review.example.org"),
+            sp_logo: Some("https://review.example.org/logo.png?x=1&y=2"),
+            purpose: CeremonyPurpose::Registration,
+            requested_attrs: Some("name,email"),
+            callback_url: "https://review.example.org/plugins/dauthz/connect/callback",
+            invite: Some("inv+1"),
+            tos_uri: Some("https://review.example.org/tos"),
+            tos_hash: Some("EHASH"),
+            requested_credentials: Some("ESCHEMA@EISSUER"),
+        };
+        let link = build_deep_link("cyfron", &params);
+        let parsed = parse_deep_link(&link).unwrap();
+        assert_eq!(parsed.scheme, "cyfron");
+        assert_eq!(parsed.service_oobi, oobi);
+        assert_eq!(parsed.sp_name, "Gerrit Review — ÄÖ");
+        assert_eq!(parsed.invite.as_deref(), Some("inv+1"));
+        assert_eq!(parsed.requested_attr_names(), vec!["name", "email"]);
+        assert_eq!(parsed.purpose, CeremonyPurpose::Registration);
+        assert_eq!(build_deep_link(&parsed.scheme, &parsed.as_params()), link);
+    }
+
+    #[test]
+    fn deep_link_parse_tolerates_unknown_and_rejects_incomplete_links() {
+        let ok = parse_deep_link(
+            "cyfron://auth?nonce=n&service_aid=E&service_oobi=%5B%5D&callback_url=http%3A%2F%2Fcb&future=1",
+        )
+        .unwrap();
+        assert_eq!(ok.purpose, CeremonyPurpose::Identification);
+        assert_eq!(ok.sp_name, "");
+
+        assert!(
+            parse_deep_link("cyfron://auth?service_aid=E&service_oobi=x&callback_url=c").is_err()
+        );
+        assert!(parse_deep_link("cyfron://channel?nonce=n").is_err());
+        assert!(parse_deep_link("not a link").is_err());
+        assert!(parse_deep_link(
+            "cyfron://auth?nonce=n&service_aid=E&service_oobi=x&callback_url=c&purpose=other"
+        )
+        .is_err());
+        assert!(form_urldecode("%zz").is_err());
+        assert!(form_urldecode("%4").is_err());
+        assert_eq!(form_urldecode("a+b%2Cc").unwrap(), "a b,c");
     }
 
     #[test]
