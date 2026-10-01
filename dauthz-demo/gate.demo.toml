@@ -1,0 +1,39 @@
+# dauthz-gate for the demo's "Connect with Cyfron" mode. Run from the
+# repository root:
+#
+#   cargo run -p dauthz-gate -- --config dauthz-demo/gate.demo.toml serve
+#
+# then open http://localhost:8088/. The gate serves the demo page, the
+# shared login page and the connect endpoints, and verifies sign-ins with
+# the dkms CLI: no cyfron-serviced, no Cyfron app.
+
+# Ceremony state and the cookie secret (relative to the working directory).
+data_dir = "target/dauthz-demo"
+challenge_ttl_secs = 300
+
+[site]
+origin = "http://localhost:8088"
+name = "DAuthZ demo"
+# Serve the demo itself at / (public; nothing is protected in this demo).
+static_dir = "dauthz-demo"
+
+[http]
+listen = "127.0.0.1:8088"
+
+[cookie]
+secure = false            # plain-HTTP localhost
+
+[bridge]
+kind = "dkms"
+
+[dkms]
+binary = "dkms"           # DKMS_BINARY in the environment wins
+# home = "/tmp/dauthz-demo-home"   # keep demo identifiers out of ~/.dkms-dev-cli
+
+[identity]
+# The service identifier, created with
+#   dkms identifier init -a demo-service --witness-url … --watcher-url …
+alias = "demo-service"
+
+[policy]
+mode = "open"             # any AID with a valid signature may sign in
