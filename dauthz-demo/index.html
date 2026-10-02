@@ -34,18 +34,29 @@
             <input id="conn-alias" type="text" value="demo-entity" spellcheck="false">
         </section>
 
+        <section class="step" id="conn-step-passport">
+            <h3>Step 3 — Passport <span class="badge" id="conn-passport-badge">optional</span></h3>
+            <p id="conn-passport-intro">The gate can also require a credential: a <em>passport</em> issued by a demo authority to your identifier. Signing in then proves both who you are and that you hold a passport.</p>
+            <p>Issue one (the script creates <code>demo-authority</code> on its first run and writes the proof and the gate policy under <code>target/dauthz-demo/</code>):</p>
+            <div class="cli-snippet" data-copy>dauthz-demo/passport.sh "Ada Lovelace" GB</div>
+            <p>Then restart the gate with the passport policy:</p>
+            <div class="cli-snippet" data-copy>(set -a; . target/dauthz-demo/passport.env; set +a; cargo run -p dauthz-gate -- --config dauthz-demo/gate.demo.toml serve)</div>
+            <p class="hint" id="conn-passport-hint">Restart without the env file to go back to the open policy.</p>
+        </section>
+
         <section class="step" id="conn-step-signin">
-            <h3>Step 3 — Sign in</h3>
+            <h3>Step 4 — Sign in</h3>
             <p>The button opens the gate's login page. There, press <strong>Copy URL</strong> (the <em>Connect</em> button needs a <code>cyfron://</code> handler) and answer the link with dkms while the page waits:</p>
             <div class="cli-snippet" data-copy id="conn-respond-cmd"></div>
-            <p class="hint">dkms shows which service is asking and asks before it signs. The login page notices the answer within a second and brings you back here.</p>
+            <p class="hint" id="conn-respond-hint">dkms shows which service is asking and asks before it signs. The login page notices the answer within a second and brings you back here.</p>
             <button id="conn-signin">Sign in with Cyfron</button>
         </section>
 
         <section class="step" id="conn-step-session">
-            <h3>Step 4 — Session</h3>
+            <h3>Step 5 — Session</h3>
             <div class="info-box" id="conn-session">Not signed in.</div>
             <button id="conn-refresh">Refresh</button>
+            <button class="hidden" id="conn-present">Present passport</button>
             <button class="danger hidden" id="conn-signout">Sign out</button>
         </section>
     </div>
