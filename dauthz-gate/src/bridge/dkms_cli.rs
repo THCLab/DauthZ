@@ -288,8 +288,11 @@ impl KeriBridge for DkmsCliBridge {
         } else {
             CheckState::Fail
         };
-        let attributes = value
-            .get("a")
+        // dkms nests the attributes one level down (`a.a`), next to the
+        // block's own `d`/`i`/`u`; flat ACDCs carry them in `a` directly.
+        let block = value.get("a");
+        let attributes = block
+            .and_then(|a| a.get("a").filter(|inner| inner.is_object()).or(Some(a)))
             .and_then(|a| a.as_object())
             .map(|a| {
                 a.iter()
@@ -303,11 +306,22 @@ impl KeriBridge for DkmsCliBridge {
                     .collect()
             })
             .unwrap_or_default();
+        let (signature_detail, binding_detail) = if signed == CheckState::Pass {
+            (
+                "issuer signature checked by dkms",
+                "covered by the issuer signature",
+            )
+        } else {
+            (
+                "the issuer's signature does not verify over these bytes",
+                "credential bytes are not the ones the issuer signed",
+            )
+        };
         Ok(CredentialVerification {
             ok: signed == CheckState::Pass,
             checks: vec![
-                row("signature", signed, "issuer signature checked by dkms"),
-                row("binding", signed, "covered by the issuer signature"),
+                row("signature", signed, signature_detail),
+                row("binding", signed, binding_detail),
                 row(
                     "validity",
                     CheckState::Pass,
@@ -484,5 +498,11 @@ esac"#,
         assert_eq!(report.state_of("revocation"), CheckState::Unknown);
         assert_eq!(report.attributes.len(), 1);
         assert!(calls(dir.path()).contains("auth verify -a svc --aid EISS"));
+
+        // dkms-issued ACDCs nest the attributes under `a.a`.
+        let nested = r#"{"v":"ACDC10JSON","d":"ECRED","i":"EISS","ri":"EREG","s":"ESCH","a":{"d":"EATT","i":"EHOLD","a":{"full_name":"Ada","nationality":"GB"}}}"#;
+        let report = b.verify_credential(nested, "-AABsig").await.unwrap();
+        let names: Vec<_> = report.attributes.iter().map(|a| a.name.as_str()).collect();
+        assert_eq!(names, vec!["full_name", "nationality"]);
     }
 }
