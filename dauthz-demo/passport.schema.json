@@ -1,0 +1,9 @@
+{
+  "d": "",
+  "title": "DAuthZ demo passport",
+  "description": "Credential the demo service requires on top of the AID sign-in.",
+  "attributes": {
+    "full_name": "Text",
+    "nationality": "Text"
+  }
+}
